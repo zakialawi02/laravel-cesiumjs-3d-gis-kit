@@ -75,12 +75,6 @@
                 <i class="ri-focus-3-line text-[15px]"></i>
             </button>
 
-            ${ window.userRole === 'admin' ? `
-            <button class="delete-layer-btn flex h-7 w-7 items-center justify-center rounded-md text-foreground/40 transition-all hover:bg-error/10 hover:text-error" title="Delete Layer"
-                data-layer-id="{!! $id !!}">
-                <i class="ri-delete-bin-line text-[15px]"></i>
-            </button>
-            ` : '' }
         </div>
     </div>
     <div class="vector-settings-panel hidden mt-2.5 border-t border-border/40 pt-2 text-xs ${ {!! $layerTypeVar !!} === 'vector' ? '' : '!hidden' }">

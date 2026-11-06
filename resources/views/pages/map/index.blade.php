@@ -842,45 +842,6 @@
                     }
                 });
 
-                // Admin: delete a published layer from the Layers panel
-                document.getElementById('allLayersList')?.addEventListener('click', async (e) => {
-                    const btn = e.target.closest('.delete-layer-btn');
-                    if (!btn) return;
-                    e.stopPropagation();
-
-                    const card = btn.closest('.layer-card-item');
-                    const layerId = btn.dataset.layerId;
-                    const layerName = card?.querySelector('h3')?.textContent?.trim() || 'this layer';
-                    if (!confirm(`Delete layer "${layerName}" and all of its processed files? This cannot be undone.`)) return;
-
-                    btn.disabled = true;
-                    try {
-                        const res = await fetch('{{ route('layers.destroy', ['layer' => ':layer']) }}'.replace(':layer', layerId), {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': getCsrfToken(),
-                                'Accept': 'application/json'
-                            }
-                        });
-                        const data = await res.json().catch(() => ({}));
-                        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to delete the layer.');
-
-                        const controller = window.mapController;
-                        if (controller) {
-                            if (controller.loadedTerrainId === layerId) {
-                                controller.resetTerrain();
-                                controller.removeImageryLayer();
-                            }
-                            controller.removeVectorLayer?.(layerId);
-                        }
-                        MyZkToast.success('Layer deleted.');
-                        fetchAllLayers();
-                        fetchRecentUploads();
-                    } catch (err) {
-                        btn.disabled = false;
-                        MyZkToast.error(err.message);
-                    }
-                });
             });
         </script>
     @endpush
