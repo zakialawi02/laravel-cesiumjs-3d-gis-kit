@@ -44,6 +44,12 @@
                 ]];
             }
 
+            if (auth()->user()->canManageUsers()) {
+                $navSections[] = ['title' => __('Administration'), 'items' => [
+                    ['route' => 'dashboard.users.index', 'active' => 'dashboard.users.*', 'icon' => 'ri-team-line', 'label' => __('Users')],
+                ]];
+            }
+
             $navSections[] = ['title' => __('Account'), 'items' => [
                 ['route' => 'profile.edit', 'active' => 'profile.*', 'icon' => 'ri-user-settings-line', 'label' => __('Edit Profile')],
             ]];
