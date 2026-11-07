@@ -48,3 +48,20 @@ function something()
 {
     // ..
 }
+
+/**
+ * Write the given contents to a temporary file that is removed when the test run ends.
+ */
+function temporaryFileWith(string $contents): string
+{
+    $path = tempnam(sys_get_temp_dir(), 'gis-unit-');
+    file_put_contents($path, $contents);
+
+    register_shutdown_function(static function () use ($path): void {
+        if (is_file($path)) {
+            unlink($path);
+        }
+    });
+
+    return $path;
+}
