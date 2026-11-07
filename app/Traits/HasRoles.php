@@ -49,4 +49,12 @@ trait HasRoles
     {
         return $this->isAdmin();
     }
+
+    /**
+     * Admins create, edit and delete user accounts.
+     */
+    public function canManageUsers(): bool
+    {
+        return $this->isAdmin();
+    }
 }

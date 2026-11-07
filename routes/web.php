@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Dashboard\LayerCategoryController as DashboardLayerCategoryController;
 use App\Http\Controllers\Dashboard\LayerController as DashboardLayerController;
+use App\Http\Controllers\Dashboard\UserController as DashboardUserController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GeodataController;
 use App\Http\Controllers\GeodataLayerController;
@@ -65,6 +66,9 @@ Route::middleware('auth')->group(function (): void {
         Route::resource('layer-categories', DashboardLayerCategoryController::class)
             ->only(['index', 'store', 'update', 'destroy'])
             ->parameters(['layer-categories' => 'category']);
+
+        Route::resource('users', DashboardUserController::class)
+            ->only(['index', 'store', 'update', 'destroy']);
     });
 });
 
