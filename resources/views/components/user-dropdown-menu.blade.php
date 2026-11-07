@@ -1,65 +1,70 @@
 @props([
     'buttonId' => 'userMenuBtn',
     'dropdownId' => 'userDropdown',
-    'placement' => 'left',
-    'avatarSize' => '10',
 ])
 
-<div class="relative {{ $placement === 'left' ? 'mt-2' : '' }}">
-    <button id="{{ $buttonId }}"
-        class="group relative flex h-{{ $avatarSize }} w-{{ $avatarSize }} items-center justify-center overflow-hidden rounded-full border-2 border-neutral bg-primary text-neutral shadow-sm transition-all hover:border-primary hover:shadow-md">
-        @if (auth()->user()->profile_photo_path)
-            <img src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="h-full w-full object-cover">
+@php
+    $user = auth()->user();
+    $initials = collect(preg_split('/\s+/', trim($user->name)))
+        ->filter()
+        ->map(fn (string $part): string => mb_strtoupper(mb_substr($part, 0, 1)))
+        ->take(2)
+        ->implode('');
+    $isAdmin = $user->role === \App\Enums\UserRole::Admin;
+@endphp
+
+{{-- Account menu in the map command bar. Opened and closed by pages/map/index.blade.php. --}}
+<div class="relative flex-none">
+    <button type="button" id="{{ $buttonId }}" class="map-avatar" aria-controls="{{ $dropdownId }}" aria-expanded="false" aria-label="{{ __('Account menu') }}">
+        @if ($user->profile_photo_path)
+            <img src="{{ $user->profile_photo_url }}" alt="">
         @else
-            <span class="{{ $avatarSize == '8' ? 'text-[10px]' : 'text-xs' }} font-bold">
-                {{ collect(explode(' ', auth()->user()->name))->map(fn($n) => $n[0])->take(2)->implode('') }}
-            </span>
+            <span aria-hidden="true">{{ $initials }}</span>
         @endif
     </button>
 
-    <!-- User Dropdown Menu -->
-    <div id="{{ $dropdownId }}"
-        class="absolute {{ $placement === 'left' ? 'bottom-0 left-full ml-4' : 'top-full right-0 mt-2' }} w-56 transform scale-95 opacity-0 pointer-events-none transition-all duration-200 z-50">
-        <div class="bg-neutral rounded-xl shadow-2xl border border-border overflow-hidden">
-            <!-- User Info Header -->
-            <div class="p-4 bg-neutral border-b border-border">
-                <div class="flex items-center justify-between mb-1">
-                    <p class="text-xs font-bold text-foreground uppercase tracking-wider text-[10px]">
-                        signed in as</p>
-                    <span
-                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider {{ auth()->user()->role === \App\Enums\UserRole::Admin ? 'bg-primary/10 text-primary' : 'bg-success/10 text-success' }}">
-                        {{ auth()->user()->role->label() }}
+    <div id="{{ $dropdownId }}" class="map-menu map-sheet pointer-events-none scale-95 opacity-0">
+        <div class="flex items-center gap-3 border-b border-map-line p-3">
+            <span class="map-avatar shrink-0" aria-hidden="true">
+                @if ($user->profile_photo_path)
+                    <img src="{{ $user->profile_photo_url }}" alt="">
+                @else
+                    {{ $initials }}
+                @endif
+            </span>
+            <div class="min-w-0 flex-1">
+                <div class="flex items-center gap-2">
+                    <p class="truncate text-sm font-semibold text-map-ink">{{ $user->name }}</p>
+                    <span class="{{ $isAdmin ? 'bg-map-accent-soft text-map-accent-ink' : 'bg-map-success/12 text-map-success' }} shrink-0 rounded-md px-1.5 py-0.5 text-[0.625rem] font-bold">
+                        {{ $user->role->label() }}
                     </span>
                 </div>
-                <p class="text-sm font-bold text-primary truncate">{{ auth()->user()->name }}</p>
-                <p class="text-[10px] text-foreground/80 truncate">{{ auth()->user()->email }}</p>
-            </div>
-
-            <!-- Menu -->
-            <nav class="py-2" aria-label="{{ __('Account') }}">
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors">
-                    <i class="ri-dashboard-line"></i>
-                    <span>Dashboard</span>
-                </a>
-                <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-4 py-2 text-sm text-foreground hover:bg-muted hover:text-primary transition-colors">
-                    <i class="ri-user-settings-line"></i>
-                    <span>Edit Profile</span>
-                </a>
-            </nav>
-
-            <!-- Logout -->
-            <div class="border-t border-border py-2">
-                <button onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
-                    class="w-full flex items-center gap-3 px-4 py-2 text-sm text-error hover:bg-error/10 transition-colors text-left">
-                    <i class="ri-logout-box-line"></i>
-                    <span>Sign Out</span>
-                </button>
+                <p class="truncate text-xs text-map-subtle">{{ $user->email }}</p>
             </div>
         </div>
 
-        <!-- Invisible pointer area to prevent accidental closing -->
-        @if ($placement === 'left')
-            <div class="absolute top-0 -left-4 w-4 h-full"></div>
-        @endif
+        <nav class="p-1.5" aria-label="{{ __('Account') }}">
+            <a href="{{ route('dashboard') }}" class="map-menu-item">
+                <i class="ri-dashboard-line" aria-hidden="true"></i>
+                <span>{{ __('Dashboard') }}</span>
+            </a>
+            <a href="{{ route('profile.edit') }}" class="map-menu-item">
+                <i class="ri-user-settings-line" aria-hidden="true"></i>
+                <span>{{ __('Edit profile') }}</span>
+            </a>
+            <button type="button" class="map-menu-item" data-theme-toggle aria-pressed="false">
+                <i class="ri-moon-clear-line dark:hidden" aria-hidden="true"></i>
+                <i class="ri-sun-line hidden dark:inline-block" aria-hidden="true"></i>
+                <span class="flex-1">{{ __('Dark mode') }}</span>
+                <span class="map-switch-mini" aria-hidden="true"></span>
+            </button>
+        </nav>
+
+        <div class="border-t border-map-line p-1.5">
+            <button type="button" class="map-menu-item map-menu-item--danger" onclick="document.getElementById('logout-form').submit();">
+                <i class="ri-logout-box-r-line" aria-hidden="true"></i>
+                <span>{{ __('Sign out') }}</span>
+            </button>
+        </div>
     </div>
 </div>

@@ -1,293 +1,260 @@
 @php
-    $select = 'w-full rounded-lg border border-border bg-input px-3 py-1.5 text-xs text-foreground/80 focus:border-primary focus:ring-1 focus:ring-primary';
-    $numberInput = 'w-full rounded-lg border border-border bg-input py-1.5 pl-3 pr-8 text-xs text-foreground/80 focus:border-primary focus:ring-1 focus:ring-primary';
-    $label = 'text-[10px] font-bold uppercase tracking-wider text-foreground/70';
-    $toggleTrack = "peer h-5 w-9 rounded-full bg-muted after:absolute after:start-[2px] after:top-[2px] after:h-4 after:w-4 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-primary peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus-visible:ring-2 peer-focus-visible:ring-primary/40";
-    $stat = 'flex flex-col gap-0.5 rounded-lg border border-border/40 bg-neutral/40 p-2.5';
-    $statLabel = 'text-[10px] font-bold uppercase tracking-wider text-foreground/50';
     $tabs = [
-        ['id' => 'cut-fill', 'label' => 'Cut & Fill', 'icon' => null],
-        ['id' => 'profile-section', 'label' => 'Profile', 'icon' => 'ri-line-chart-line'],
+        ['id' => 'cut-fill', 'label' => __('Cut & fill'), 'icon' => null],
+        ['id' => 'profile-section', 'label' => __('Profile'), 'icon' => 'ri-line-chart-line'],
     ];
 @endphp
 
-<!-- Vol/Profile analysis panel (bottom sheet on mobile, floating on desktop) -->
-<div id="analysisPanel" class="analysis-panel flex flex-col gap-3 overflow-y-auto bg-neutral/95 p-4 shadow-2xl" role="dialog" aria-labelledby="analysisPanelTitle">
-    <div id="analysisNormalContent" class="flex flex-1 flex-col gap-3 overflow-y-auto">
-        <!-- Header -->
-        <div class="flex shrink-0 items-center justify-between border-b border-border pb-2">
-            <h3 id="analysisPanelTitle" class="flex items-center gap-2 text-sm font-bold text-primary">
-                <i class="ri-bar-chart-box-line text-base"></i>
-                <span>Terrain Analysis</span>
-            </h3>
-            <x-button-close id="closeAnalysisBtn" aria-label="Close analysis" />
-        </div>
+{{--
+    Vol/Profile analysis: top-right card on md+, bottom sheet on phones.
+    cesium-map.js toggles .active, hides the panel while drawing and fills every id below.
+--}}
+<div id="analysisPanel" class="map-analysis map-sheet" role="dialog" aria-labelledby="analysisPanelTitle">
+    <span class="map-sheet-grabber" aria-hidden="true"></span>
 
-        <!-- Tabs -->
-        <div class="flex w-full shrink-0 rounded-lg border border-border/40 bg-input p-0.5" role="tablist" aria-label="Analysis tools">
-            @foreach ($tabs as $tab)
-                <button type="button" role="tab" id="{{ $tab['id'] }}-tab-btn" aria-controls="{{ $tab['id'] }}-tab" aria-selected="{{ $loop->first ? 'true' : 'false' }}" data-analysis-tab
-                    class="inline-flex w-1/2 items-center justify-center gap-x-1.5 rounded-md px-2 py-1 text-[11px] font-bold text-foreground/60 transition-all hover:text-primary aria-selected:bg-neutral aria-selected:text-primary aria-selected:shadow-xs">
-                    @if ($tab['icon'])
-                        <i class="{{ $tab['icon'] }} text-xs"></i>
-                    @else
-                        <img src="{{ asset('assets/img/icons/analysis-cut-fill.svg') }}" alt="" class="h-3 w-3 dark:invert">
-                    @endif
-                    <span>{{ $tab['label'] }}</span>
-                </button>
-            @endforeach
-        </div>
+    <div id="analysisNormalContent" class="flex min-h-0 flex-1 flex-col">
+        <header class="map-panel-head">
+            <div class="min-w-0 flex-1">
+                <h3 id="analysisPanelTitle" class="map-panel-title">{{ __('Terrain analysis') }}</h3>
+                <p class="map-panel-sub">{{ __('Runs on the active terrain layer.') }}</p>
+            </div>
+            <x-button-close id="closeAnalysisBtn" aria-label="{{ __('Close analysis') }}" />
+        </header>
 
-        <div class="flex-1 overflow-y-auto pr-1 [scrollbar-width:thin]">
-            <!-- Cut & Fill -->
-            <div id="cut-fill-tab" role="tabpanel" aria-labelledby="cut-fill-tab-btn" class="space-y-4">
-                <section>
-                    <div class="mb-1 flex items-center gap-1">
-                        <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">1. Area</span>
-                    </div>
-                    <button id="cutFillDrawBtn" type="button"
-                        class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-2 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90">
-                        <i class="ri-edit-box-line"></i>
-                        <span id="cutFillDrawBtnText">Draw Area</span>
+        <div class="flex-none px-3 pb-3">
+            <div class="map-segmented" role="tablist" aria-label="{{ __('Analysis tools') }}">
+                @foreach ($tabs as $tab)
+                    <button type="button" role="tab" id="{{ $tab['id'] }}-tab-btn" aria-controls="{{ $tab['id'] }}-tab" aria-selected="{{ $loop->first ? 'true' : 'false' }}" data-analysis-tab
+                        class="map-segment">
+                        @if ($tab['icon'])
+                            <i class="{{ $tab['icon'] }} text-sm" aria-hidden="true"></i>
+                        @else
+                            <span class="map-glyph size-3.5" style="--glyph: url('{{ asset('assets/img/icons/analysis-cut-fill.svg') }}')" aria-hidden="true"></span>
+                        @endif
+                        <span>{{ $tab['label'] }}</span>
                     </button>
-                    <p class="mt-1 text-center text-[10px] italic text-foreground/60">Click to add points, double-click (or Done) to finish.</p>
+                @endforeach
+            </div>
+        </div>
+
+        <div class="map-panel-body px-3.5">
+            {{-- Cut & fill --}}
+            <div id="cut-fill-tab" role="tabpanel" aria-labelledby="cut-fill-tab-btn" class="flex flex-col gap-5">
+                <section class="map-step">
+                    <h4 class="map-step-title"><span class="map-step-num">1</span>{{ __('Draw the area') }}</h4>
+                    <button id="cutFillDrawBtn" type="button" class="map-btn w-full" data-map-action data-variant="primary">
+                        <i class="ri-edit-box-line" aria-hidden="true"></i>
+                        <span id="cutFillDrawBtnText">{{ __('Draw area') }}</span>
+                    </button>
+                    <p class="map-help-text">{{ __('Click to add points. Double-click or press Done to close the polygon.') }}</p>
                 </section>
 
-                <section>
-                    <div class="mb-3 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">2. Parameters</span>
+                <section class="map-step">
+                    <h4 class="map-step-title"><span class="map-step-num">2</span>{{ __('Set the parameters') }}</h4>
+
+                    <div class="map-form-row">
+                        <label for="cutFillResolution" class="map-form-label">{{ __('Grid resolution') }}</label>
+                        <select id="cutFillResolution" class="map-field">
+                            <option value="1">1 m (slow)</option>
+                            <option value="2">2 m</option>
+                            <option value="3" selected>3 m (balanced)</option>
+                            <option value="4">4 m</option>
+                            <option value="5">5 m</option>
+                            <option value="10">10 m (fast)</option>
+                        </select>
                     </div>
-                    <div class="space-y-4">
-                        <div class="flex flex-col gap-1">
-                            <label for="cutFillResolution" class="{{ $label }}">Grid Resolution</label>
-                            <select id="cutFillResolution" class="{{ $select }}">
-                                <option value="1">1 m (slow)</option>
-                                <option value="2">2 m</option>
-                                <option value="3" selected>3 m (balanced)</option>
-                                <option value="4">4 m</option>
-                                <option value="5">5 m</option>
-                                <option value="10">10 m (fast)</option>
+
+                    <div class="map-form-row">
+                        <label for="cutFillTargetType" class="map-form-label">{{ __('Target surface') }}</label>
+                        <select id="cutFillTargetType" class="map-field">
+                            <option value="flat" selected>{{ __('Flat elevation') }}</option>
+                            <option value="boundary">{{ __('Polygon boundary (vertex heights)') }}</option>
+                            <option value="terrain">{{ __('Another terrain layer') }}</option>
+                        </select>
+                    </div>
+
+                    <div id="cutFillFlatGroup" class="map-form-row">
+                        <label for="cutFillTargetElevation" class="map-form-label">{{ __('Target elevation') }}</label>
+                        <div class="relative">
+                            <input type="text" inputmode="decimal" id="cutFillTargetElevation" value="0.0" class="map-field pr-9 tabular-nums"
+                                oninput="this.value = this.value.replace(/[^0-9.,\-]/g, '');">
+                            <span class="map-field-unit">m</span>
+                        </div>
+                    </div>
+
+                    <div id="cutFillBoundaryOffsetGroup" class="map-form-row hidden">
+                        <label for="cutFillBoundaryOffset" class="map-form-label">{{ __('Boundary height offset') }}</label>
+                        <div class="relative">
+                            <input type="text" inputmode="decimal" id="cutFillBoundaryOffset" value="0.0" class="map-field pr-9 tabular-nums" aria-describedby="cutFillBoundaryOffsetHint"
+                                oninput="this.value = this.value.replace(/[^0-9.,\-]/g, '');">
+                            <span class="map-field-unit">m</span>
+                        </div>
+                        <p id="cutFillBoundaryOffsetHint" class="map-help-text">{{ __('Added to the boundary vertex heights (+/- metres).') }}</p>
+                    </div>
+
+                    <div id="cutFillTerrainGroup" class="map-form-row hidden">
+                        <label for="cutFillCompareTerrain" class="map-form-label">{{ __('Comparison terrain') }}</label>
+                        <div class="relative">
+                            <select id="cutFillCompareTerrain" class="map-field">
+                                <option value="">{{ __('Loading terrains...') }}</option>
                             </select>
-                        </div>
-
-                        <div class="flex flex-col gap-1">
-                            <label for="cutFillTargetType" class="{{ $label }}">Target Surface</label>
-                            <select id="cutFillTargetType" class="{{ $select }}">
-                                <option value="flat" selected>Flat elevation</option>
-                                <option value="boundary">Polygon boundary (vertex heights)</option>
-                                <option value="terrain">Another terrain layer</option>
-                            </select>
-                        </div>
-
-                        <div id="cutFillFlatGroup" class="flex flex-col gap-1">
-                            <label for="cutFillTargetElevation" class="{{ $label }}">Target Elevation</label>
-                            <div class="relative">
-                                <input type="text" inputmode="decimal" id="cutFillTargetElevation" value="0.0" class="{{ $numberInput }}"
-                                    oninput="this.value = this.value.replace(/[^0-9.,\-]/g, '');">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-foreground/40">m</span>
-                            </div>
-                        </div>
-
-                        <div id="cutFillBoundaryOffsetGroup" class="flex hidden flex-col gap-1">
-                            <label for="cutFillBoundaryOffset" class="{{ $label }}">Boundary Height Offset</label>
-                            <div class="relative">
-                                <input type="text" inputmode="decimal" id="cutFillBoundaryOffset" value="0.0" class="{{ $numberInput }}"
-                                    oninput="this.value = this.value.replace(/[^0-9.,\-]/g, '');">
-                                <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-foreground/40">m</span>
-                            </div>
-                            <p class="text-[9px] text-foreground/50">Added to the boundary vertex heights (+/- meters).</p>
-                        </div>
-
-                        <div id="cutFillTerrainGroup" class="flex hidden flex-col gap-1">
-                            <label for="cutFillCompareTerrain" class="{{ $label }}">Comparison Terrain</label>
-                            <div class="relative flex items-center">
-                                <select id="cutFillCompareTerrain" class="{{ $select }}">
-                                    <option value="">Loading terrains...</option>
-                                </select>
-                                <div id="cutFillCompareTerrainSpinner" class="absolute right-8 top-1/2 hidden -translate-y-1/2 text-primary">
-                                    <i class="ri-loader-4-line animate-spin text-xs"></i>
-                                </div>
-                            </div>
+                            <span id="cutFillCompareTerrainSpinner" class="pointer-events-none absolute right-9 top-1/2 hidden -translate-y-1/2 text-map-accent-ink">
+                                <i class="ri-loader-4-line animate-spin text-sm" aria-hidden="true"></i>
+                            </span>
                         </div>
                     </div>
                 </section>
 
-                <div class="flex gap-2">
-                    <button id="cutFillClearBtn" type="button" class="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted">Clear</button>
-                    <button id="cutFillCalculateBtn" type="button" disabled
-                        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50">
-                        Calculate Volume
-                    </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="cutFillClearBtn" type="button" class="map-btn map-btn-secondary">{{ __('Clear') }}</button>
+                    <button id="cutFillCalculateBtn" type="button" class="map-btn map-btn-primary" disabled>{{ __('Calculate volume') }}</button>
                 </div>
 
-                <div id="cutFillResultsSection" class="hidden space-y-3 rounded-xl border border-border p-4" aria-live="polite">
-                    <div class="mb-1 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-primary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">Results</span>
+                <div id="cutFillResultsSection" class="map-results hidden" aria-live="polite">
+                    <h4 class="map-step-title">{{ __('Results') }}</h4>
+                    <div class="map-stat-grid">
+                        <div class="map-stat map-stat--cut">
+                            <span class="map-stat-label">{{ __('Cut volume') }}</span>
+                            <span id="cutFillResultCut" class="map-stat-value text-map-danger">-</span>
+                        </div>
+                        <div class="map-stat map-stat--fill">
+                            <span class="map-stat-label">{{ __('Fill volume') }}</span>
+                            <span id="cutFillResultFill" class="map-stat-value text-map-accent-ink">-</span>
+                        </div>
                     </div>
-                    <dl class="space-y-2 text-xs">
-                        <div class="flex justify-between border-b border-border/50 pb-1.5"><dt class="text-foreground/60">Planar area (2D)</dt><dd id="cutFillResultPlanarArea" class="font-semibold text-foreground">-</dd></div>
-                        <div class="flex hidden justify-between border-b border-border/50 pb-1.5"><dt class="text-foreground/60">Surface area (3D)</dt><dd id="cutFillResultSurfaceArea" class="font-semibold text-foreground">-</dd></div>
-                        <div class="flex justify-between border-b border-border/50 pb-1.5"><dt class="text-foreground/60">Cut volume</dt><dd id="cutFillResultCut" class="font-semibold text-error">-</dd></div>
-                        <div class="flex justify-between border-b border-border/50 pb-1.5"><dt class="text-foreground/60">Fill volume</dt><dd id="cutFillResultFill" class="font-semibold text-primary">-</dd></div>
-                        <div class="flex justify-between border-b border-border/50 pb-1.5"><dt class="text-foreground/60">Net volume (cut − fill)</dt><dd id="cutFillResultNet" class="font-semibold">-</dd></div>
-                        <div class="flex justify-between"><dt class="text-foreground/60">Average depth (cut/fill)</dt><dd id="cutFillResultAvgDepth" class="font-semibold text-foreground">-</dd></div>
+                    <dl class="map-result-list">
+                        <div><dt>{{ __('Net volume (cut − fill)') }}</dt><dd id="cutFillResultNet">-</dd></div>
+                        <div><dt>{{ __('Planar area (2D)') }}</dt><dd id="cutFillResultPlanarArea">-</dd></div>
+                        <div class="hidden"><dt>{{ __('Surface area (3D)') }}</dt><dd id="cutFillResultSurfaceArea">-</dd></div>
+                        <div><dt>{{ __('Average depth (cut/fill)') }}</dt><dd id="cutFillResultAvgDepth">-</dd></div>
                     </dl>
                 </div>
 
-                <section>
-                    <div class="mb-3 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">Display</span>
-                    </div>
-                    <div class="space-y-3">
-                        <label class="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-neutral p-3">
-                            <span class="flex flex-col gap-0.5">
-                                <span class="text-xs font-bold text-foreground">Heatmap grid</span>
-                                <span class="text-[9px] text-foreground/60">Color grid cells by cut/fill depth</span>
-                            </span>
-                            <span class="relative inline-flex items-center">
-                                <input type="checkbox" id="cutFillToggleHeatmap" class="peer sr-only" checked>
-                                <span class="{{ $toggleTrack }}"></span>
-                            </span>
-                        </label>
-                        <label class="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-neutral p-3">
-                            <span class="flex flex-col gap-0.5">
-                                <span class="text-xs font-bold text-foreground">Grid points</span>
-                                <span class="text-[9px] text-foreground/60">Show the sampled terrain nodes</span>
-                            </span>
-                            <span class="relative inline-flex items-center">
-                                <input type="checkbox" id="cutFillTogglePoints" class="peer sr-only">
-                                <span class="{{ $toggleTrack }}"></span>
-                            </span>
-                        </label>
-                    </div>
+                <section class="map-step">
+                    <h4 class="map-step-title">{{ __('Display') }}</h4>
+                    <label class="map-switch-row">
+                        <span class="flex min-w-0 flex-col gap-0.5">
+                            <span class="text-[0.8125rem] font-semibold text-map-ink">{{ __('Heatmap grid') }}</span>
+                            <span class="map-help-text">{{ __('Colour grid cells by cut/fill depth') }}</span>
+                        </span>
+                        <span class="map-switch">
+                            <input type="checkbox" id="cutFillToggleHeatmap" class="peer sr-only" checked>
+                            <span class="map-switch-track" aria-hidden="true"></span>
+                        </span>
+                    </label>
+                    <label class="map-switch-row">
+                        <span class="flex min-w-0 flex-col gap-0.5">
+                            <span class="text-[0.8125rem] font-semibold text-map-ink">{{ __('Grid points') }}</span>
+                            <span class="map-help-text">{{ __('Show the sampled terrain nodes') }}</span>
+                        </span>
+                        <span class="map-switch">
+                            <input type="checkbox" id="cutFillTogglePoints" class="peer sr-only">
+                            <span class="map-switch-track" aria-hidden="true"></span>
+                        </span>
+                    </label>
                 </section>
             </div>
 
-            <!-- Elevation profile -->
-            <div id="profile-section-tab" role="tabpanel" aria-labelledby="profile-section-tab-btn" class="hidden space-y-4">
-                <section>
-                    <div class="mb-2 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">1. Profile Line</span>
-                    </div>
-                    <button id="profileDrawBtn" type="button"
-                        class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-2 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90">
-                        <i class="ri-pencil-ruler-2-line"></i>
-                        <span id="profileDrawBtnText">Draw Profile Line</span>
+            {{-- Elevation profile --}}
+            <div id="profile-section-tab" role="tabpanel" aria-labelledby="profile-section-tab-btn" class="flex hidden flex-col gap-5">
+                <section class="map-step">
+                    <h4 class="map-step-title"><span class="map-step-num">1</span>{{ __('Draw the profile line') }}</h4>
+                    <button id="profileDrawBtn" type="button" class="map-btn w-full" data-map-action data-variant="primary">
+                        <i class="ri-pencil-ruler-2-line" aria-hidden="true"></i>
+                        <span id="profileDrawBtnText">{{ __('Draw profile line') }}</span>
                     </button>
-                    <p class="mt-1 text-center text-[10px] italic text-foreground/60">Click to add points, double-click (or Done) to finish.</p>
+                    <p class="map-help-text">{{ __('Click to add points. Double-click or press Done to finish the line.') }}</p>
                 </section>
 
-                <section>
-                    <div class="mb-3 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">2. Parameters</span>
+                <section class="map-step">
+                    <h4 class="map-step-title"><span class="map-step-num">2</span>{{ __('Set the parameters') }}</h4>
+
+                    <div class="map-form-row">
+                        <label for="profileSampleInterval" class="map-form-label">{{ __('Sampling interval') }}</label>
+                        <select id="profileSampleInterval" class="map-field">
+                            <option value="0.5">0.5 m (high detail)</option>
+                            <option value="1">1 m</option>
+                            <option value="2">2 m</option>
+                            <option value="3" selected>3 m (balanced)</option>
+                            <option value="5">5 m (fast)</option>
+                        </select>
                     </div>
-                    <div class="space-y-3">
-                        <div class="flex flex-col gap-1">
-                            <label for="profileSampleInterval" class="{{ $label }}">Sampling Interval</label>
-                            <select id="profileSampleInterval" class="{{ $select }}">
-                                <option value="0.5">0.5 m (high detail)</option>
-                                <option value="1">1 m</option>
-                                <option value="2">2 m</option>
-                                <option value="3" selected>3 m (balanced)</option>
-                                <option value="5">5 m (fast)</option>
+
+                    <div class="map-form-row">
+                        <label for="profileMode" class="map-form-label">{{ __('Mode') }}</label>
+                        <select id="profileMode" class="map-field">
+                            <option value="single">{{ __('Single (active terrain only)') }}</option>
+                            <option value="double">{{ __('Compare (active + another terrain)') }}</option>
+                        </select>
+                    </div>
+
+                    <div id="profileTerrainGroup" class="map-form-row hidden">
+                        <label for="profileCompareTerrain" class="map-form-label">{{ __('Comparison terrain') }}</label>
+                        <div class="relative">
+                            <select id="profileCompareTerrain" class="map-field">
+                                <option value="">{{ __('Loading terrains...') }}</option>
                             </select>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label for="profileMode" class="{{ $label }}">Mode</label>
-                            <select id="profileMode" class="{{ $select }}">
-                                <option value="single">Single (active terrain only)</option>
-                                <option value="double">Compare (active + another terrain)</option>
-                            </select>
-                        </div>
-                        <div id="profileTerrainGroup" class="flex hidden flex-col gap-1">
-                            <label for="profileCompareTerrain" class="{{ $label }}">Comparison Terrain</label>
-                            <div class="relative flex items-center">
-                                <select id="profileCompareTerrain" class="{{ $select }}">
-                                    <option value="">Loading terrains...</option>
-                                </select>
-                                <div id="profileCompareTerrainSpinner" class="absolute right-8 top-1/2 hidden -translate-y-1/2 text-primary">
-                                    <i class="ri-loader-4-line animate-spin text-xs"></i>
-                                </div>
-                            </div>
+                            <span id="profileCompareTerrainSpinner" class="pointer-events-none absolute right-9 top-1/2 hidden -translate-y-1/2 text-map-accent-ink">
+                                <i class="ri-loader-4-line animate-spin text-sm" aria-hidden="true"></i>
+                            </span>
                         </div>
                     </div>
                 </section>
 
-                <section>
-                    <div class="mb-3 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">Display</span>
-                    </div>
-                    <label class="flex cursor-pointer items-center justify-between rounded-xl border border-border bg-neutral p-3">
-                        <span class="flex flex-col gap-0.5">
-                            <span class="text-xs font-bold text-foreground">Elevation color bands</span>
-                            <span class="text-[9px] text-foreground/60">Color the terrain by height</span>
+                <section class="map-step">
+                    <h4 class="map-step-title">{{ __('Display') }}</h4>
+                    <label class="map-switch-row">
+                        <span class="flex min-w-0 flex-col gap-0.5">
+                            <span class="text-[0.8125rem] font-semibold text-map-ink">{{ __('Elevation colour bands') }}</span>
+                            <span class="map-help-text">{{ __('Colour the terrain by height') }}</span>
                         </span>
-                        <span class="relative inline-flex items-center">
+                        <span class="map-switch">
                             <input type="checkbox" id="settingElevationBand" class="peer sr-only">
-                            <span class="{{ $toggleTrack }}"></span>
+                            <span class="map-switch-track" aria-hidden="true"></span>
                         </span>
                     </label>
                 </section>
 
-                <div class="flex gap-2">
-                    <button id="profileClearBtn" type="button" class="flex-1 rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground transition hover:bg-muted">Clear</button>
-                    <button id="profileGenerateBtn" type="button" disabled
-                        class="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50">
-                        Generate Profile
-                    </button>
+                <div class="grid grid-cols-2 gap-2">
+                    <button id="profileClearBtn" type="button" class="map-btn map-btn-secondary">{{ __('Clear') }}</button>
+                    <button id="profileGenerateBtn" type="button" class="map-btn map-btn-primary" disabled>{{ __('Generate profile') }}</button>
                 </div>
 
-                <div id="profileResultsSection" class="hidden space-y-3 rounded-xl border border-border p-4" aria-live="polite">
-                    <div class="mb-1 flex items-center gap-2">
-                        <div class="h-1 w-3 rounded-full bg-primary"></div>
-                        <span class="text-[11px] font-bold uppercase tracking-widest text-foreground/70">Elevation Profile</span>
+                <div id="profileResultsSection" class="map-results hidden" aria-live="polite">
+                    <h4 class="map-step-title">{{ __('Elevation profile') }}</h4>
+                    <div class="overflow-hidden rounded-[0.625rem] border border-map-line bg-map-surface-strong p-1">
+                        <canvas id="profileChart" class="h-44 w-full" role="img" aria-label="{{ __('Elevation profile chart') }}"></canvas>
                     </div>
-                    <div class="relative w-full overflow-hidden rounded-lg border border-border/40 bg-neutral p-0.5">
-                        <canvas id="profileChart" class="h-40 w-full" role="img" aria-label="Elevation profile chart"></canvas>
+                    <div id="profileChartLegend" class="flex hidden items-center justify-center gap-4 text-[0.6875rem] font-semibold text-map-muted">
+                        <span class="flex items-center gap-1.5"><span class="inline-block h-1.5 w-3 rounded-sm bg-[#6366f1]"></span>{{ __('Active terrain') }}</span>
+                        <span class="flex items-center gap-1.5"><span class="inline-block h-1.5 w-3 rounded-sm bg-[#f97316]"></span>{{ __('Comparison terrain') }}</span>
                     </div>
-                    <div id="profileChartLegend" class="flex hidden items-center justify-center gap-4 py-1 text-[10px] font-semibold text-foreground/75">
-                        <span class="flex items-center gap-1.5"><span class="inline-block h-1.5 w-3 rounded bg-[#6366f1]"></span>Active terrain</span>
-                        <span class="flex items-center gap-1.5"><span class="inline-block h-1.5 w-3 rounded bg-[#f97316]"></span>Comparison terrain</span>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
-                        <div class="{{ $stat }}"><span class="{{ $statLabel }}">Total length</span><span id="profileTotalLength" class="text-sm font-bold text-foreground">-</span></div>
-                        <div class="{{ $stat }}"><span class="{{ $statLabel }}">Average slope</span><span id="profileAvgSlope" class="text-sm font-bold text-secondary">-</span></div>
-                        <div class="{{ $stat }}"><span class="{{ $statLabel }}">Min elevation</span><span id="profileMinElevation" class="text-sm font-bold text-foreground">-</span></div>
-                        <div class="{{ $stat }}"><span class="{{ $statLabel }}">Max elevation</span><span id="profileMaxElevation" class="text-sm font-bold text-primary">-</span></div>
-                        <div class="{{ $stat }}"><span class="{{ $statLabel }}">Elevation gain</span><span id="profileElevationGain" class="text-sm font-bold text-emerald-600 dark:text-emerald-400">-</span></div>
-                        <div class="{{ $stat }}"><span class="{{ $statLabel }}">Elevation loss</span><span id="profileElevationLoss" class="text-sm font-bold text-red-600 dark:text-red-400">-</span></div>
+                    <div class="map-stat-grid">
+                        <div class="map-stat"><span class="map-stat-label">{{ __('Total length') }}</span><span id="profileTotalLength" class="map-stat-value">-</span></div>
+                        <div class="map-stat"><span class="map-stat-label">{{ __('Average slope') }}</span><span id="profileAvgSlope" class="map-stat-value">-</span></div>
+                        <div class="map-stat"><span class="map-stat-label">{{ __('Min elevation') }}</span><span id="profileMinElevation" class="map-stat-value">-</span></div>
+                        <div class="map-stat"><span class="map-stat-label">{{ __('Max elevation') }}</span><span id="profileMaxElevation" class="map-stat-value text-map-accent-ink">-</span></div>
+                        <div class="map-stat"><span class="map-stat-label">{{ __('Elevation gain') }}</span><span id="profileElevationGain" class="map-stat-value text-map-success">-</span></div>
+                        <div class="map-stat"><span class="map-stat-label">{{ __('Elevation loss') }}</span><span id="profileElevationLoss" class="map-stat-value text-map-danger">-</span></div>
                     </div>
 
-                    <div id="profileCompareStatsSection" class="hidden space-y-2 border-t border-border/40 pt-3">
-                        <div class="mb-1 flex items-center gap-2">
-                            <div class="h-1 w-3 rounded-full bg-secondary"></div>
-                            <span class="text-[10px] font-bold uppercase tracking-widest text-foreground/70">Comparison Terrain</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div class="{{ $stat }}"><span class="{{ $statLabel }}">Average slope</span><span id="profileCompareAvgSlope" class="text-sm font-bold text-secondary">-</span></div>
-                            <div class="{{ $stat }}"><span class="{{ $statLabel }}">Min elevation</span><span id="profileCompareMinElevation" class="text-sm font-bold text-foreground">-</span></div>
-                            <div class="{{ $stat }}"><span class="{{ $statLabel }}">Max elevation</span><span id="profileCompareMaxElevation" class="text-sm font-bold text-primary">-</span></div>
-                            <div class="{{ $stat }}"><span class="{{ $statLabel }}">Elevation gain</span><span id="profileCompareElevationGain" class="text-sm font-bold text-emerald-600 dark:text-emerald-400">-</span></div>
-                            <div class="{{ $stat }} col-span-2"><span class="{{ $statLabel }}">Elevation loss</span><span id="profileCompareElevationLoss" class="text-sm font-bold text-red-600 dark:text-red-400">-</span></div>
+                    <div id="profileCompareStatsSection" class="flex hidden flex-col gap-2 border-t border-map-line pt-3">
+                        <p class="map-label">{{ __('Comparison terrain') }}</p>
+                        <div class="map-stat-grid">
+                            <div class="map-stat"><span class="map-stat-label">{{ __('Average slope') }}</span><span id="profileCompareAvgSlope" class="map-stat-value">-</span></div>
+                            <div class="map-stat"><span class="map-stat-label">{{ __('Min elevation') }}</span><span id="profileCompareMinElevation" class="map-stat-value">-</span></div>
+                            <div class="map-stat"><span class="map-stat-label">{{ __('Max elevation') }}</span><span id="profileCompareMaxElevation" class="map-stat-value text-map-accent-ink">-</span></div>
+                            <div class="map-stat"><span class="map-stat-label">{{ __('Elevation gain') }}</span><span id="profileCompareElevationGain" class="map-stat-value text-map-success">-</span></div>
+                            <div class="map-stat col-span-2"><span class="map-stat-label">{{ __('Elevation loss') }}</span><span id="profileCompareElevationLoss" class="map-stat-value text-map-danger">-</span></div>
                         </div>
                     </div>
 
-                    <div id="profileDeltaStatsSection" class="hidden space-y-2 border-t border-border/40 pt-3">
-                        <div class="mb-1 flex items-center gap-2">
-                            <div class="h-1 w-3 rounded-full bg-emerald-500"></div>
-                            <span class="text-[10px] font-bold uppercase tracking-widest text-foreground/70">Difference (active − comparison)</span>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 text-xs">
-                            <div class="{{ $stat }} col-span-2"><span class="{{ $statLabel }}">Average difference</span><span id="profileDeltaAvg" class="text-sm font-bold text-foreground">-</span></div>
-                            <div class="{{ $stat }}"><span class="{{ $statLabel }}">Min difference</span><span id="profileDeltaMin" class="text-sm font-bold text-foreground">-</span></div>
-                            <div class="{{ $stat }}"><span class="{{ $statLabel }}">Max difference</span><span id="profileDeltaMax" class="text-sm font-bold text-foreground">-</span></div>
+                    <div id="profileDeltaStatsSection" class="flex hidden flex-col gap-2 border-t border-map-line pt-3">
+                        <p class="map-label">{{ __('Difference (active − comparison)') }}</p>
+                        <div class="map-stat-grid">
+                            <div class="map-stat col-span-2"><span class="map-stat-label">{{ __('Average difference') }}</span><span id="profileDeltaAvg" class="map-stat-value">-</span></div>
+                            <div class="map-stat"><span class="map-stat-label">{{ __('Min difference') }}</span><span id="profileDeltaMin" class="map-stat-value">-</span></div>
+                            <div class="map-stat"><span class="map-stat-label">{{ __('Max difference') }}</span><span id="profileDeltaMax" class="map-stat-value">-</span></div>
                         </div>
                     </div>
                 </div>

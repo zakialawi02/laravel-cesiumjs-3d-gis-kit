@@ -1,39 +1,40 @@
-<!-- Layers Expanded Panel -->
-<div id="layersPanel" class="expanded-panel flex flex-col bg-neutral shadow-2xl">
-    <!-- Header -->
-    <div class="flex items-center justify-between px-3 py-2">
-        <h2 class="text-xl font-semibold text-primary">Layer</h2>
-        <x-button-close id="closeLayersBtn" />
-    </div>
+{{-- Layers panel: floating card under the command bar (md+), bottom sheet on phones. --}}
+<section id="layersPanel" class="map-panel map-sheet" aria-labelledby="layersPanelTitle">
+    <span class="map-sheet-grabber" aria-hidden="true"></span>
 
-    <!-- Search and Filter -->
-    <div class="px-3 pb-2 flex-none flex flex-col gap-2">
-        <div class="relative">
-            <i class="ri-search-line absolute left-3 top-1/2 -translate-y-1/2 text-foreground/60 text-sm"></i>
-            <input type="text" id="searchLayers" placeholder="Search layers..."
-                class="w-full rounded-lg border border-border bg-input py-1.5 pl-8 pr-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary">
+    <header class="map-panel-head">
+        <div class="min-w-0 flex-1">
+            <h2 id="layersPanelTitle" class="map-panel-title">{{ __('Layers') }}</h2>
+            <p class="map-panel-sub">{{ __('Show terrain, orthophoto and vector data on the globe.') }}</p>
         </div>
+        <x-button-close id="closeLayersBtn" aria-label="{{ __('Close layers panel') }}" />
+    </header>
+
+    <div class="flex flex-none flex-col gap-2 px-3 pb-3">
+        <label class="relative block">
+            <span class="sr-only">{{ __('Search layers') }}</span>
+            <i class="ri-search-line map-field-icon" aria-hidden="true"></i>
+            <input type="search" id="searchLayers" placeholder="{{ __('Search layers') }}" autocomplete="off" spellcheck="false" class="map-field pl-9">
+        </label>
+
         <div class="flex items-center gap-2">
-            <div class="relative flex items-center flex-1">
-                <input type="month" id="filterMonthYearLayers" title="Filter by Month/Year" value=""
-                    class="w-full rounded-lg border border-border bg-input py-1.5 px-3 text-xs focus:ring-1 focus:ring-primary focus:border-primary text-foreground/80 cursor-pointer">
-                <button type="button" id="clearMonthYearLayersFilter" class="absolute right-1 text-foreground/50 hover:text-error hidden cursor-pointer" title="Clear filter">
-                    <i class="ri-close-line text-sm leading-none"></i>
+            <div class="relative min-w-0 flex-1">
+                <i class="ri-calendar-line map-field-icon" aria-hidden="true"></i>
+                <input type="month" id="filterMonthYearLayers" value="" aria-label="{{ __('Filter by acquisition or upload month') }}" class="map-field cursor-pointer pl-9 pr-10">
+                <button type="button" id="clearMonthYearLayersFilter" class="map-icon-btn absolute right-1 top-1/2 hidden size-8 -translate-y-1/2 hover:text-map-danger"
+                    aria-label="{{ __('Clear month filter') }}">
+                    <i class="ri-close-line" aria-hidden="true"></i>
                 </button>
             </div>
-            <button type="button" id="refreshLayersBtn"
-                class="flex-none flex items-center justify-center p-1.5 rounded-lg border border-border bg-input text-foreground/70 hover:text-primary hover:bg-muted transition"
-                title="Refresh Layers">
-                <i class="ri-refresh-line text-sm leading-none"></i>
+            <button type="button" id="refreshLayersBtn" class="map-icon-btn map-icon-btn--boxed" aria-label="{{ __('Refresh layers') }}" data-tip="{{ __('Refresh layers') }}">
+                <i class="ri-refresh-line" aria-hidden="true"></i>
             </button>
         </div>
     </div>
 
-    <!-- Layers List -->
-    <div class="flex-1 overflow-y-auto px-3">
-        <!-- All Layers Categories Section -->
+    <div class="map-panel-body">
         <div id="allLayersList">
-            <x-skeleton count="6" id="layersLoading" />
+            <x-skeleton count="4" id="layersLoading" />
         </div>
     </div>
-</div>
+</section>

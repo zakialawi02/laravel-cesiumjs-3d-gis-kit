@@ -1,5 +1,5 @@
-<!-- Mobile Bottom Navigation (Hidden on md and up) -->
-<nav aria-label="{{ __('Main navigation') }}" class="z-40 flex h-16 w-full flex-none items-center justify-around border-t border-border bg-neutral px-2 pb-safe shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:hidden">
+{{-- Phone bottom navigation (hidden from md up, where the switches live in the command bar). --}}
+<nav aria-label="{{ __('Main navigation') }}" class="map-tabbar map-glass">
     <x-mobile-nav-button id="layers" icon="ri-stack-line" activeIcon="ri-stack-fill" label="Layers" />
 
     @if (auth()->user()->canUploadData())

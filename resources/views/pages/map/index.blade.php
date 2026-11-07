@@ -2,36 +2,28 @@
 @section('meta_description', '')
 
 <x-app-front-layout>
-    <div class="relative flex h-dvh w-full flex-col md:flex-row m-0 p-0 overflow-clip">
+    {{-- Full-bleed globe with floating chrome. Layout and states live in the "Map workspace" section of app.css. --}}
+    <div class="map-app" id="mapApp">
+        <div id="cesiumContainer" class="map-canvas"></div>
 
-        <!-- Mobile Header (Hidden on md and up) -->
-        @include('pages.map.partials.mobile-header')
+        @include('pages.map.partials.command-bar')
 
-        <!-- Main Content Wrapper -->
-        <div class="relative flex flex-1 overflow-clip">
-            <!-- Desktop Sidebar (Hidden on Mobile) -->
-            @include('pages.map.partials.sidebar')
+        @include('pages.map.partials.panels.layers-panel')
 
-            <!-- Layers Expanded Panel -->
-            @include('pages.map.partials.panels.layers-panel')
+        @if (auth()->user()->canUploadData())
+            @include('pages.map.partials.panels.data-panel')
+        @endif
 
-            @if (auth()->user()->canUploadData())
-                <!-- Data Expanded Panel (Upload Assets) -->
-                @include('pages.map.partials.panels.data-panel')
-            @endif
+        @include('pages.map.partials.map-controls')
+        @include('pages.map.partials.map-overlays')
+        @include('pages.map.partials.panels.help-panel')
+        @include('pages.map.partials.panels.analysis-panel')
 
-            <!-- Map Canvas and Overlays -->
-            @include('pages.map.partials.map-canvas')
-        </div>
-        <!-- End Main Content Wrapper -->
-
-        <!-- Mobile Bottom Navigation (Hidden on md and up) -->
         @include('pages.map.partials.mobile-nav')
 
         @if (auth()->user()->canUploadData())
             <x-upload-modal />
         @endif
-
     </div>
 
 
@@ -141,17 +133,27 @@
                     }
                 }
 
+                /**
+                 * Open a panel without toggling it closed when it is already open (side panels share one slot).
+                 */
+                function openPanel(name) {
+                    if (!panelInstances[name]?.panel?.classList.contains('panel-open')) {
+                        togglePanel(name);
+                    }
+                }
+
                 function closeUserDropdown() {
-                    const dropdown = document.getElementById('userDropdown');
-                    const dropdownMobile = document.getElementById('userDropdownMobile');
-                    if (dropdown) {
-                        dropdown.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-                        dropdown.classList.remove('opacity-100', 'scale-100');
-                    }
-                    if (dropdownMobile) {
-                        dropdownMobile.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
-                        dropdownMobile.classList.remove('opacity-100', 'scale-100');
-                    }
+                    [
+                        ['userDropdown', 'userMenuBtn'],
+                        ['userDropdownMobile', 'userMenuBtnMobile'],
+                    ].forEach(([dropdownId, buttonId]) => {
+                        const dropdown = document.getElementById(dropdownId);
+                        if (dropdown) {
+                            dropdown.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+                            dropdown.classList.remove('opacity-100', 'scale-100');
+                        }
+                        document.getElementById(buttonId)?.setAttribute('aria-expanded', 'false');
+                    });
                 }
 
                 // Keyboard: L / D toggle panels, Escape closes them (ignored while typing).
@@ -241,8 +243,17 @@
                         closeUserDropdown();
                         dropdown.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
                         dropdown.classList.add('opacity-100', 'scale-100');
+                        e.currentTarget?.setAttribute('aria-expanded', 'true');
                     }
                 };
+
+                // Dark mode switch inside the account menu reports its state to assistive tech.
+                const syncThemeToggles = () => {
+                    const isDark = document.documentElement.classList.contains('dark');
+                    document.querySelectorAll('#mapApp [data-theme-toggle]').forEach(btn => btn.setAttribute('aria-pressed', String(isDark)));
+                };
+                syncThemeToggles();
+                addPageEventListener(window, 'theme-changed', syncThemeToggles);
 
                 if (userMenuBtn && userDropdown) {
                     addPageEventListener(userMenuBtn, 'click', (e) => toggleUserMenu(userDropdown, e));
@@ -353,7 +364,7 @@
                     // Ensure loading state if list is being initialized or refreshed from empty
                     if (list.innerHTML.trim() === '' || list.querySelector('#recentUploadEmptyState')) {
                         list.innerHTML = `
-                            <x-loading-spinner id="recentUploadLoading" />
+                            <x-loading-spinner id="recentUploadLoading" message="Loading recent uploads" />
                         `;
                     }
 
@@ -363,8 +374,10 @@
                             if (data.success) {
                                 if (data.jobs.length === 0) {
                                     list.innerHTML = `
-                                        <div id="recentUploadEmptyState">
-                                            <x-empty-state icon="ri-history-line" message="No recent uploads" />
+                                        <div id="recentUploadEmptyState" class="map-empty">
+                                            <i class="ri-history-line" aria-hidden="true"></i>
+                                            <p class="map-empty-title">No recent uploads</p>
+                                            <p class="map-empty-text">Finished and failed conversions are listed here.</p>
                                         </div>
                                     `;
                                     return;
@@ -375,29 +388,45 @@
                         })
                         .catch(err => {
                             console.error('Error loading recent uploads:', err);
-                            list.innerHTML = `<x-empty-state message="Failed to load recent uploads" />`;
+                            list.innerHTML = `
+                                <div class="map-empty">
+                                    <i class="ri-error-warning-line text-map-danger" aria-hidden="true"></i>
+                                    <p class="map-empty-title">Couldn't load recent uploads</p>
+                                    <p class="map-empty-text">Check your connection, then press Refresh.</p>
+                                </div>
+                            `;
                         });
                 }
 
+                // Full class strings (not interpolated) so Tailwind can see them.
+                const jobTones = {
+                    done: { tile: 'bg-map-success/12 text-map-success', icon: 'ri-checkbox-circle-fill' },
+                    failed: { tile: 'bg-map-danger/12 text-map-danger', icon: 'ri-error-warning-fill' },
+                    running: { tile: 'bg-map-accent-soft text-map-accent-ink', icon: 'ri-loader-4-line animate-spin' },
+                };
+
                 function renderJobItem(job) {
-                    const tone = job.is_done ? 'success' : (job.is_failed ? 'error' : 'primary');
-                    const icon = job.is_done ? 'ri-checkbox-circle-fill' : (job.is_failed ? 'ri-error-warning-fill' : 'ri-refresh-line animate-spin');
+                    const tone = jobTones[job.is_done ? 'done' : (job.is_failed ? 'failed' : 'running')];
                     const typeIcon = job.layer_type === 'terrain' ? 'ri-landscape-line' : 'ri-shape-line';
                     const processing = (!job.is_done && !job.is_failed) ?
-                        ' &bull; <span class="text-primary font-semibold animate-pulse">Processing...</span>' : '';
+                        '<span aria-hidden="true">&middot;</span><span class="font-semibold text-map-accent-ink animate-pulse">Processing</span>' : '';
 
                     return `
-                        <div class="rounded-lg p-2 ring-1 ring-${tone}/15 bg-${tone}/5">
-                            <div class="flex items-center gap-2.5">
-                                <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded bg-${tone}/10 text-${tone}">
-                                    <i class="${icon} text-base"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h4 class="truncate text-sm font-bold text-foreground flex items-center gap-1">
-                                        <i class="${typeIcon} text-foreground/50 text-xs"></i>${window.escapeHtml(job.layer_name)}
-                                    </h4>
-                                    <p class="text-[11px] text-foreground/50 leading-none mt-1">${window.escapeHtml(job.time_diff)} &bull; ${window.escapeHtml(job.status_label)}${processing}</p>
-                                </div>
+                        <div class="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-map-hover">
+                            <span class="flex size-8 shrink-0 items-center justify-center rounded-[0.625rem] ${tone.tile}" aria-hidden="true">
+                                <i class="${tone.icon} text-base"></i>
+                            </span>
+                            <div class="min-w-0 flex-1">
+                                <p class="flex items-center gap-1.5 text-[0.8125rem] font-semibold text-map-ink">
+                                    <i class="${typeIcon} text-xs text-map-subtle" aria-hidden="true"></i>
+                                    <span class="truncate">${window.escapeHtml(job.layer_name)}</span>
+                                </p>
+                                <p class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[0.6875rem] text-map-subtle">
+                                    <span>${window.escapeHtml(job.time_diff)}</span>
+                                    <span aria-hidden="true">&middot;</span>
+                                    <span>${window.escapeHtml(job.status_label)}</span>
+                                    ${processing}
+                                </p>
                             </div>
                         </div>`;
                 }
@@ -412,9 +441,9 @@
                     const list = document.getElementById('allLayersList');
                     if (!list) return;
 
-                    if (list.innerHTML.trim() === '' || list.querySelector('#layersEmptyState') || list.innerHTML.includes('Failed to load')) {
+                    if (list.innerHTML.trim() === '' || list.querySelector('#layersEmptyState') || list.querySelector('#layersErrorState')) {
                         list.innerHTML = `
-                            <x-skeleton count="6" id="layersLoading" />
+                            <x-skeleton count="4" id="layersLoading" />
                         `;
                     }
 
@@ -442,10 +471,18 @@
                         }
 
                         if (filteredCats.length === 0) {
-                            const emptyMsg = searchQuery ? 'No layers match "' + searchQuery + '"' : 'No layers';
+                            const isFiltered = Boolean(searchQuery || monthYear);
+                            const emptyTitle = searchQuery ?
+                                'No layers match “' + window.escapeHtml(searchQuery) + '”' :
+                                (isFiltered ? 'No layers in this month' : 'No layers yet');
+                            const emptyText = isFiltered ?
+                                'Try another name or clear the month filter.' :
+                                (window.userRole === 'admin' ? 'Upload terrain or vector data from the Data panel.' : 'Layers appear here once an admin uploads data.');
                             list.innerHTML = `
-                                <div class="mb-6">
-                                    <x-empty-state message="${emptyMsg}" id="layersEmptyState" />
+                                <div id="layersEmptyState" class="map-empty mt-1">
+                                    <i class="${isFiltered ? 'ri-search-line' : 'ri-stack-line'}" aria-hidden="true"></i>
+                                    <p class="map-empty-title">${emptyTitle}</p>
+                                    <p class="map-empty-text">${emptyText}</p>
                                 </div>
                             `;
                             return;
@@ -483,8 +520,8 @@
                                     <x-layer-card
                                         id="${layer.id}"
                                         name="${window.escapeHtml(layer.name)}"
-                                        acquisitionDate="${acqDate}"
-                                        createdAt="${layer.created_at}"
+                                        acquisitionDate="${window.escapeHtml(acqDate)}"
+                                        createdAt="${window.escapeHtml(layer.created_at)}"
                                         dataAttrs="${dataAttrs}"
                                         layerType="${layer.layer_type}"
                                         isActiveJS="${isActive}"
@@ -497,14 +534,14 @@
                             return `
                                 <x-accordion-group-data id="${window.escapeHtml(cat.id)}" title="${window.escapeHtml(cat.name)}" count="${cat.layers.length}">
                                     <x-slot:icon>
-                                        <span class="w-2 h-2 rounded-full flex-none" style="background-color: ${window.safeColor(cat.color)}"></span>
+                                        <span class="map-group-dot" style="--dot: ${window.safeColor(cat.color)}" aria-hidden="true"></span>
                                     </x-slot:icon>
                                     ${layersHtml}
                                 </x-accordion-group-data>
                             `;
                         }).join('');
 
-                        list.innerHTML = `<div class="space-y-2">${html}</div>`;
+                        list.innerHTML = `<div class="flex flex-col">${html}</div>`;
 
                         document.dispatchEvent(new CustomEvent('vectorLayersRendered'));
                     };
@@ -527,7 +564,11 @@
                         .catch(err => {
                             console.error('Error loading layers:', err);
                             list.innerHTML = `
-                                <x-empty-state message="Failed to load layers." type="error" />
+                                <div id="layersErrorState" class="map-empty mt-1">
+                                    <i class="ri-error-warning-line text-map-danger" aria-hidden="true"></i>
+                                    <p class="map-empty-title">Couldn't load layers</p>
+                                    <p class="map-empty-text">Check your connection, then press the refresh button.</p>
+                                </div>
                             `;
                         });
                 }
@@ -595,12 +636,8 @@
                         closeModal('upload');
                         window.UploadModal.reset();
 
-                        // Show data panel
-                        const dataPanelEl = panelInstances['data']?.panel;
-                        if (dataPanelEl && !dataPanelEl.classList.contains('panel-open')) {
-                            dataPanelEl.classList.add('panel-open');
-                            updatePanelState('data', true);
-                        }
+                        // Show the data panel (closes the layers panel, which shares its slot)
+                        openPanel('data');
 
                         // Create progress item in activeUploadsList
                         const uploadId = generateUploadId();
@@ -733,12 +770,8 @@
                         closeModal('upload');
                         window.UploadModal.reset();
 
-                        // Show data panel
-                        const dataPanelEl = panelInstances['data']?.panel;
-                        if (dataPanelEl && !dataPanelEl.classList.contains('panel-open')) {
-                            dataPanelEl.classList.add('panel-open');
-                            updatePanelState('data', true);
-                        }
+                        // Show the data panel (closes the layers panel, which shares its slot)
+                        openPanel('data');
 
                         const uploadId = generateUploadId();
                         const progressHtml = `
@@ -831,6 +864,45 @@
                         if (!selectedFile) return;
                         closeModal('upload');
                     }
+                });
+
+                // Copy the picked point ("lat, lon, z") from the coordinate card.
+                const copyPickedBtn = document.getElementById('copyPickedCoordinatesBtn');
+                addPageEventListener(copyPickedBtn, 'click', async () => {
+                    const read = id => (document.getElementById(id)?.textContent || '').trim();
+                    const parts = [read('pickLatVal'), read('pickLngVal')];
+                    const elevation = read('pickZVal').replace(/\s*m$/, '');
+                    if (elevation && elevation !== '-') parts.push(elevation);
+                    if (parts.some(part => !part || part === '-')) return;
+
+                    const text = parts.join(', ');
+                    const copyWithSelection = () => {
+                        const field = document.createElement('textarea');
+                        field.value = text;
+                        field.setAttribute('readonly', '');
+                        field.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+                        document.body.appendChild(field);
+                        field.select();
+                        const copied = document.execCommand('copy');
+                        field.remove();
+                        return copied;
+                    };
+
+                    let copied = false;
+                    try {
+                        await navigator.clipboard.writeText(text);
+                        copied = true;
+                    } catch (error) {
+                        copied = copyWithSelection();
+                    }
+
+                    const icon = copyPickedBtn.querySelector('i');
+                    if (icon) icon.className = copied ? 'ri-check-line text-map-success' : 'ri-error-warning-line text-map-danger';
+                    copyPickedBtn.setAttribute('aria-label', copied ? 'Coordinates copied' : 'Copy failed');
+                    setTimeout(() => {
+                        if (icon) icon.className = 'ri-file-copy-line';
+                        copyPickedBtn.setAttribute('aria-label', 'Copy coordinates');
+                    }, 1500);
                 });
 
                 // Pause/Cancel/Dismiss delegation loaded from resources/js/upload/upload-wiring.js
