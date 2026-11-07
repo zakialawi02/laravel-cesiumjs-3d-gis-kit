@@ -177,7 +177,7 @@ vite.config.js                                 # Vite entries + plugin copying C
 
 **Change the terrain pipeline.** Edit `TerrainConversionService`. Every external tool call goes through `runDockerCommand()`, so new tools must exist in the `gdal` or `ctb` images.
 
-**Add a map tool.** Add the button to `resources/views/pages/map/partials/map-canvas.blade.php`, the behaviour to `CesiumMapController` (or a new module imported by it), and wire the click in the `DOMContentLoaded` block at the end of `cesium-map.js`. Use `CesiumMapDrawer` for interactive drawing and the shared drawing control bar (`showDrawingControlBar(text, context)`).
+**Add a map tool.** Add the button to the tool rail in `resources/views/pages/map/partials/map-controls.blade.php` (class `map-tool`; add `data-map-tool aria-pressed="false"` when it toggles a mode, so `applyBtnStyle()` drives its pressed state), the behaviour to `CesiumMapController` (or a new module imported by it), and wire the click in the `DOMContentLoaded` block at the end of `cesium-map.js`. Use `CesiumMapDrawer` for interactive drawing and the shared drawing control bar (`showDrawingControlBar(text, context)`). The map chrome is styled in the "Map workspace" section of `resources/css/app.css`.
 
 **Add a dashboard page.** Create a controller under `app/Http/Controllers/Dashboard`, a form request under `app/Http/Requests/Dashboard`, a view under `resources/views/pages/dashboard`, register the route in the `dashboard.` group in `routes/web.php`, and add the nav item in `resources/views/layouts/app.blade.php`.
 

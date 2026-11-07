@@ -8,21 +8,15 @@
     'opacityClass' => '',
     'layerType',
     'isActiveJS',
-    'actionDisabledClass' => 'hover:bg-primary/10 hover:text-primary',
+    'actionDisabledClass' => '',
     'categoryColor' => null,
 ])
 
 @php
-    // Strip '${' and '}' if the user passes the variable wrapped in JS template literal syntax
-    // so we can use it safely inside our own JS conditionals.
+    // This component is rendered inside a JS template literal (pages/map/index.blade.php):
+    // props arrive as `${expression}` strings and are evaluated in the browser.
     $isActiveVar = str_replace(['${', '}'], '', $isActiveJS);
     $layerTypeVar = str_replace(['${', '}'], '', $layerType);
-
-    $jsColorTernary =
-        "{$layerTypeVar} === 'terrain' ? 'text-amber-600 bg-amber-50 border-amber-100' : " .
-        "({$layerTypeVar} === 'vector' ? 'text-blue-600 bg-blue-50 border-blue-100' : " .
-        "({$layerTypeVar} === 'imagery' ? 'text-green-600 bg-green-50 border-green-100' : " .
-        "({$layerTypeVar} === 'pointcloud' ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-gray-600 bg-gray-50 border-gray-100')))";
 
     $jsIconTernary =
         "{$layerTypeVar} === 'terrain' ? 'ri-landscape-line' : " .
@@ -31,59 +25,51 @@
         "({$layerTypeVar} === 'pointcloud' ? 'ri-bubble-chart-line' : 'ri-file-line')))";
 @endphp
 
-<div class="layer-card-item group rounded-xl border border-border/60 bg-neutral/50 p-2.5 transition-all hover:border-primary/30 hover:shadow-sm hover:shadow-primary/5 {!! $opacityClass !!}"
-    {!! $dataAttrs !!}>
-    <div class="flex items-start gap-2.5">
-        <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border ${ {!! $jsColorTernary !!} }">
-            <i class="${ {!! $jsIconTernary !!} } text-base"></i>
-        </div>
-        <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1.5">
-                <h3 class="truncate text-[13px] font-semibold text-foreground leading-tight">{!! $name !!}</h3>
-            </div>
-            <div class="mt-1 space-y-0.5">
-                <div class="flex items-center gap-1.5 text-[10px]">
-                    <span class="w-16 font-bold text-foreground/40 uppercase tracking-tighter text-[8px]">Acquired</span>
-                    <span class="text-foreground/60 leading-none">{!! $acquisitionDate !!}</span>
-                </div>
-                <div class="flex items-center gap-1.5 text-[10px]">
-                    <span class="w-16 font-bold text-foreground/40 uppercase tracking-tighter text-[8px]">Uploaded</span>
-                    <span class="text-foreground/60 leading-none">{!! $createdAt !!}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="mt-2 flex items-center justify-between border-t border-border/40 pt-1 gap-1 min-w-0">
-        <div class="flex items-center gap-1 min-w-0">
-            <span class="rounded-md bg-foreground/5 px-1.5 py-0.5 font-mono text-[9px] font-medium text-foreground/40 ring-1 ring-inset ring-foreground/10 truncate max-w-[140px]"
-                title="ID: {!! $id !!}">ID: {!! $id !!}</span>
+{{--
+    Hooks used by cesium-map.js: .layer-card-item + data-* attributes, .toggle-{type}-btn (its first <i> is
+    swapped for eye / eye-off / loader), .focus-{type}-btn, .configure-vector-btn, .vector-settings-panel
+    and .label-field-select. The card's "visible" look follows the eye icon (see .map-layer in app.css).
+--}}
+<div class="layer-card-item map-layer {!! $opacityClass !!}" {!! $dataAttrs !!}>
+    <div class="map-layer-row">
+        <span class="map-layer-type map-layer-type--{!! $layerType !!}" aria-hidden="true">
+            <i class="${ {!! $jsIconTernary !!} }"></i>
+        </span>
+
+        <div class="map-layer-main">
+            <h3 class="map-layer-name" title="{!! $name !!}">{!! $name !!}</h3>
+            <p class="map-layer-meta">
+                <span class="map-layer-meta-key">Acquired</span>
+                <span>{!! $acquisitionDate !!}</span>
+            </p>
+            <p class="map-layer-meta">
+                <span class="map-layer-meta-key">Uploaded</span>
+                <span>{!! $createdAt !!}</span>
+                <span aria-hidden="true">&middot;</span>
+                <span class="map-layer-id" title="ID: {!! $id !!}">{!! $id !!}</span>
+            </p>
             {!! $badges !!}
         </div>
-        <div class="flex items-center gap-0.5 shrink-0">
-            <button
-                class="configure-vector-btn flex h-7 w-7 items-center justify-center rounded-md text-foreground/40 transition-all hover:bg-primary/10 hover:text-primary ${ {!! $layerTypeVar !!} === 'vector' ? ({!! $isActiveVar !!} ? '' : 'hidden') : 'hidden' }"
-                title="Label Settings" data-layer-id="{!! $id !!}">
-                <i class="ri-settings-4-line text-[15px]"></i>
+
+        <div class="map-layer-actions">
+            <button type="button"
+                class="configure-vector-btn map-icon-btn {!! $actionDisabledClass !!} ${ {!! $layerTypeVar !!} === 'vector' ? ({!! $isActiveVar !!} ? '' : 'hidden') : 'hidden' }"
+                title="Label settings" aria-label="Label settings" data-layer-id="{!! $id !!}">
+                <i class="ri-price-tag-3-line text-[15px]" aria-hidden="true"></i>
             </button>
-
-
-            <button class="toggle-{!! $layerType !!}-btn flex h-7 w-7 items-center justify-center rounded-md transition-all {!! $actionDisabledClass !!}" title="Show/Hide">
+            <button type="button" class="toggle-{!! $layerType !!}-btn map-icon-btn map-layer-toggle {!! $actionDisabledClass !!}" title="Show / hide" aria-label="Show or hide layer">
                 <i class="${ {!! $isActiveVar !!} ? 'ri-eye-line text-primary' : 'ri-eye-off-line text-foreground/40' } text-[15px]"></i>
             </button>
-
-            <button class="focus-{!! $layerType !!}-btn flex h-7 w-7 items-center justify-center rounded-md text-foreground/40 transition-all {!! $actionDisabledClass !!}" title="Zoom to Layer">
-                <i class="ri-focus-3-line text-[15px]"></i>
+            <button type="button" class="focus-{!! $layerType !!}-btn map-icon-btn {!! $actionDisabledClass !!}" title="Zoom to layer" aria-label="Zoom to layer">
+                <i class="ri-focus-3-line text-[15px]" aria-hidden="true"></i>
             </button>
-
         </div>
     </div>
-    <div class="vector-settings-panel hidden mt-2.5 border-t border-border/40 pt-2 text-xs ${ {!! $layerTypeVar !!} === 'vector' ? '' : '!hidden' }">
-        <div class="flex items-center justify-between gap-2">
-            <span class="text-[10px] font-bold text-foreground/50 uppercase tracking-tighter">Label Field</span>
-            <select
-                class="label-field-select rounded-md border border-border bg-input py-0.5 pl-1.5 pr-6 text-[11px] font-medium text-foreground/80 focus:ring-1 focus:ring-primary focus:border-primary cursor-pointer w-32 text-ellipsis overflow-hidden">
-                <option value="">No Label</option>
-            </select>
-        </div>
+
+    <div class="vector-settings-panel map-layer-settings hidden ${ {!! $layerTypeVar !!} === 'vector' ? '' : '!hidden' }">
+        <span class="map-label">Label field</span>
+        <select class="label-field-select map-field" aria-label="Label field">
+            <option value="">No label</option>
+        </select>
     </div>
 </div>

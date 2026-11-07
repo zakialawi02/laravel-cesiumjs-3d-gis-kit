@@ -41,6 +41,18 @@ const DXF_SUBCLASS_COLORS = {
  */
 function applyBtnStyle(btn, styleName) {
     if (!btn) return;
+
+    // Redesigned map controls are styled in app.css from state attributes instead of colour classes:
+    // tool toggles ([data-map-tool]) use aria-pressed, panel actions ([data-map-action]) use data-variant.
+    if (btn.hasAttribute("data-map-tool")) {
+        btn.setAttribute("aria-pressed", String(styleName === "active"));
+        return;
+    }
+    if (btn.hasAttribute("data-map-action")) {
+        btn.dataset.variant = styleName;
+        return;
+    }
+
     const styles = {
         active: ["bg-primary", "text-background"],
         inactive: ["bg-neutral", "text-foreground"],
@@ -539,7 +551,7 @@ class CesiumMapController {
 
         if (!properties || Object.keys(properties).length === 0) {
             const p = document.createElement("p");
-            p.className = "text-[10px] md:text-xs text-foreground/60 text-center italic";
+            p.className = "map-prop-empty";
             p.textContent = "No properties available.";
             content.appendChild(p);
         } else {
@@ -608,16 +620,14 @@ class CesiumMapController {
                 }
 
                 const wrapper = document.createElement("div");
-                wrapper.className =
-                    "flex flex-col border-b border-border/50 pb-1 last:border-0 last:pb-0 mb-1 last:mb-0";
+                wrapper.className = "map-prop";
 
                 const keySpan = document.createElement("span");
-                keySpan.className =
-                    "text-[9px] md:text-[10px] font-bold text-foreground/50 uppercase tracking-wider";
+                keySpan.className = "map-prop-key";
                 keySpan.textContent = displayKey;
 
                 const valSpan = document.createElement("span");
-                valSpan.className = "text-xs md:text-sm text-foreground break-words";
+                valSpan.className = "map-prop-value";
                 valSpan.textContent = displayValue ?? "-";
 
                 wrapper.appendChild(keySpan);
@@ -1125,9 +1135,8 @@ class CesiumMapController {
         if (!toast) {
             toast = document.createElement("div");
             toast.id = "pivotToast";
-            toast.className =
-                "absolute bottom-2 md:bottom-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-2 py-1 rounded-full text-xs md:text-sm font-medium text-white shadow-2xl backdrop-blur-md border border-white/10 w-[90%] md:w-1/3";
-            toast.style.backgroundColor = "rgba(23, 23, 23, 0.85)";
+            toast.className = "map-hint map-glass"; // Styled in app.css (map workspace).
+            toast.setAttribute("role", "status");
             document.getElementById("cesiumContainer")?.parentElement?.appendChild(toast);
         }
         toast.innerHTML = `<i class="ri-crosshair-2-line text-red-400"></i> ${message}`;
@@ -2530,7 +2539,7 @@ class CesiumMapController {
                     this.disableCutFillDrawMode();
                 } else {
                     this.enableCutFillDrawMode();
-                    if (cutFillDrawBtnText) cutFillDrawBtnText.textContent = "Cancel Drawing";
+                    if (cutFillDrawBtnText) cutFillDrawBtnText.textContent = "Cancel drawing";
                     applyBtnStyle(cutFillDrawBtn, "danger");
                 }
             };
@@ -2821,7 +2830,7 @@ class CesiumMapController {
         const cutFillDrawBtn = document.getElementById("cutFillDrawBtn");
         const cutFillDrawBtnText = document.getElementById("cutFillDrawBtnText");
         if (cutFillDrawBtnText) {
-            cutFillDrawBtnText.textContent = "Draw Area";
+            cutFillDrawBtnText.textContent = "Draw area";
         }
         if (cutFillDrawBtn) {
             applyBtnStyle(cutFillDrawBtn, "primary");
@@ -2877,7 +2886,7 @@ class CesiumMapController {
         // Update UI Draw button text
         const cutFillDrawBtnText = document.getElementById("cutFillDrawBtnText");
         const cutFillDrawBtn = document.getElementById("cutFillDrawBtn");
-        if (cutFillDrawBtnText) cutFillDrawBtnText.textContent = "Draw Area";
+        if (cutFillDrawBtnText) cutFillDrawBtnText.textContent = "Draw area";
         if (cutFillDrawBtn) {
             applyBtnStyle(cutFillDrawBtn, "primary");
         }
@@ -3459,7 +3468,7 @@ class CesiumMapController {
         // Reset UI elements
         const cutFillDrawBtnText = document.getElementById("cutFillDrawBtnText");
         const cutFillDrawBtn = document.getElementById("cutFillDrawBtn");
-        if (cutFillDrawBtnText) cutFillDrawBtnText.textContent = "Draw Area";
+        if (cutFillDrawBtnText) cutFillDrawBtnText.textContent = "Draw area";
         if (cutFillDrawBtn) {
             applyBtnStyle(cutFillDrawBtn, "primary");
         }
@@ -3610,7 +3619,7 @@ class CesiumMapController {
                     this.disableProfileDrawMode();
                 } else {
                     this.enableProfileDrawMode();
-                    if (profileDrawBtnText) profileDrawBtnText.textContent = "Cancel Drawing";
+                    if (profileDrawBtnText) profileDrawBtnText.textContent = "Cancel drawing";
                     applyBtnStyle(profileDrawBtn, "danger");
                 }
             };
@@ -3755,7 +3764,7 @@ class CesiumMapController {
         const profileDrawBtn = document.getElementById("profileDrawBtn");
         const profileDrawBtnText = document.getElementById("profileDrawBtnText");
         if (profileDrawBtnText) {
-            profileDrawBtnText.textContent = "Draw Profile Line";
+            profileDrawBtnText.textContent = "Draw profile line";
         }
         if (profileDrawBtn) {
             applyBtnStyle(profileDrawBtn, "primary");
@@ -3794,7 +3803,7 @@ class CesiumMapController {
 
         const profileDrawBtnText = document.getElementById("profileDrawBtnText");
         const profileDrawBtn = document.getElementById("profileDrawBtn");
-        if (profileDrawBtnText) profileDrawBtnText.textContent = "Draw Profile Line";
+        if (profileDrawBtnText) profileDrawBtnText.textContent = "Draw profile line";
         if (profileDrawBtn) {
             applyBtnStyle(profileDrawBtn, "primary");
         }
@@ -4657,7 +4666,7 @@ class CesiumMapController {
 
         const profileDrawBtnText = document.getElementById("profileDrawBtnText");
         const profileDrawBtn = document.getElementById("profileDrawBtn");
-        if (profileDrawBtnText) profileDrawBtnText.textContent = "Draw Profile Line";
+        if (profileDrawBtnText) profileDrawBtnText.textContent = "Draw profile line";
         if (profileDrawBtn) {
             applyBtnStyle(profileDrawBtn, "primary");
         }
@@ -4818,12 +4827,16 @@ document.addEventListener("DOMContentLoaded", () => {
         measurePanel.classList.toggle("scale-95", !open);
         document.getElementById("measureToggleBtn")?.setAttribute("aria-expanded", String(open));
     };
+    const setHelpPanelOpen = (open) => {
+        helpPanel?.classList.toggle("hidden", !open);
+        document.getElementById("helpBtn")?.setAttribute("aria-expanded", String(open));
+    };
 
     addManagedListener(document.getElementById("measureToggleBtn"), "click", (e) => {
         e.stopPropagation();
         const isOpening = measurePanel?.classList.contains("opacity-0");
         if (isOpening) {
-            helpPanel?.classList.add("hidden");
+            setHelpPanelOpen(false);
             const analysisPanel = document.getElementById("analysisPanel");
             if (analysisPanel?.classList.contains("active")) {
                 mapController.disableCutFillMode();
@@ -4836,23 +4849,21 @@ document.addEventListener("DOMContentLoaded", () => {
     addManagedListener(document.getElementById("helpBtn"), "click", (e) => {
         e.stopPropagation();
         setMeasurePanelOpen(false);
-        const isHidden = helpPanel?.classList.toggle("hidden");
-        document.getElementById("helpBtn")?.setAttribute("aria-expanded", String(!isHidden));
+        setHelpPanelOpen(Boolean(helpPanel?.classList.contains("hidden")));
     });
     addManagedListener(document.getElementById("closeHelpPanelBtn"), "click", () => {
-        helpPanel?.classList.add("hidden");
-        document.getElementById("helpBtn")?.setAttribute("aria-expanded", "false");
+        setHelpPanelOpen(false);
     });
 
     // Close the floating measure/help popovers on outside click or Escape
     addManagedListener(document, "click", (e) => {
         if (measurePanel && !e.target.closest("#measurePanel, #measureToggleBtn")) setMeasurePanelOpen(false);
-        if (helpPanel && !e.target.closest("#cesiumHelpPanel, #helpBtn")) helpPanel.classList.add("hidden");
+        if (helpPanel && !e.target.closest("#cesiumHelpPanel, #helpBtn")) setHelpPanelOpen(false);
     });
     addManagedListener(document, "keydown", (e) => {
         if (e.key !== "Escape") return;
         setMeasurePanelOpen(false);
-        helpPanel?.classList.add("hidden");
+        setHelpPanelOpen(false);
     });
 
     addManagedListener(document.getElementById("closeCoordinatePickerPopupBtn"), "click", () => {
@@ -5000,7 +5011,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         if (select) {
                             const keys = mapController.getVectorPropertyKeys(layerId);
                             if (select.options.length <= 1 && keys.length > 0) {
-                                select.innerHTML = '<option value="">No Label</option>';
+                                select.innerHTML = '<option value="">No label</option>';
                                 const activeField =
                                     card.dataset.labelField !== undefined
                                         ? card.dataset.labelField
@@ -5131,7 +5142,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     if (select) {
                         const keys = mapController.getVectorPropertyKeys(layerId);
                         if (select.options.length <= 1 && keys.length > 0) {
-                            select.innerHTML = '<option value="">No Label</option>';
+                            select.innerHTML = '<option value="">No label</option>';
                             const activeField =
                                 card.dataset.labelField !== undefined
                                     ? card.dataset.labelField

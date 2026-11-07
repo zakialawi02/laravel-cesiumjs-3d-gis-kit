@@ -3,7 +3,7 @@
     'id' => null,
 ])
 
-<div {{ $attributes->merge(['class' => 'py-6 text-center']) }} @if($id) id="{{ $id }}" @endif>
-    <i class="ri-refresh-line text-2xl text-primary animate-spin mb-1 block"></i>
-    <p class="text-[10px] text-foreground/50 italic">{{ $message }}</p>
+<div {{ $attributes->merge(['class' => 'flex items-center justify-center gap-2 py-6 text-xs text-map-subtle']) }} @if ($id) id="{{ $id }}" @endif role="status">
+    <i class="ri-loader-4-line animate-spin text-base text-map-accent-ink" aria-hidden="true"></i>
+    <span>{{ $message }}</span>
 </div>
