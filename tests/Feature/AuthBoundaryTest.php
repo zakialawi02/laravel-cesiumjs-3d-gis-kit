@@ -9,7 +9,7 @@ uses(LazilyRefreshDatabase::class);
 
 test('guests are redirected to login from protected pages', function (string $path): void {
     $this->get($path)->assertRedirect(route('login'));
-})->with(['/dashboard', '/profile', '/confirm-password', '/verify-email']);
+})->with(['/', '/dashboard', '/profile']);
 
 test('authenticated users can open the dashboard', function (): void {
     $user = User::factory()->create();
@@ -21,7 +21,7 @@ test('authenticated users are redirected away from guest pages', function (strin
     $user = User::factory()->create();
 
     $this->actingAs($user)->get($path)->assertRedirect(route('dashboard'));
-})->with(['/login', '/register']);
+})->with(['/login', '/forgot-password']);
 
 test('login is blocked after five failed attempts', function (string $identifierField): void {
     $user = User::factory()->create();
@@ -29,47 +29,41 @@ test('login is blocked after five failed attempts', function (string $identifier
 
     for ($attempt = 0; $attempt < 5; $attempt++) {
         $this->post('/login', [
-            'login' => $user->{$identifierField},
+            'id_user' => $user->{$identifierField},
             'password' => 'wrong-password',
-        ])->assertSessionHasErrors(['login' => __('auth.failed')]);
+        ])->assertSessionHasErrors(['id_user' => __('auth.failed')]);
     }
 
     $this->post('/login', [
-        'login' => ' '.strtoupper($user->{$identifierField}).' ',
+        'id_user' => ' '.strtoupper($user->{$identifierField}).' ',
         'password' => 'password',
-    ])->assertSessionHasErrors('login');
+    ])->assertSessionHasErrors('id_user');
 
     $this->assertGuest();
     Event::assertDispatched(Lockout::class);
 })->with(['email', 'username']);
 
-test('registration rejects an existing email address', function (): void {
-    $user = User::factory()->create();
+test('public registration is not available', function (): void {
+    User::factory()->create();
 
+    $this->get('/register')->assertNotFound();
     $this->post('/register', [
         'name' => 'Another User',
         'username' => 'another_user',
-        'email' => ' '.strtoupper($user->email).' ',
+        'email' => 'another@example.com',
         'password' => 'password',
         'password_confirmation' => 'password',
-    ])->assertSessionHasErrors(['email' => __('validation.unique', ['attribute' => 'email'])]);
+    ])->assertNotFound();
 
     $this->assertGuest();
     $this->assertDatabaseCount('users', 1);
 });
 
-test('registration rejects a password that is not confirmed', function (): void {
-    $this->post('/register', [
-        'name' => 'Test User',
-        'username' => 'test_user',
-        'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'different-password',
-    ])->assertSessionHasErrors(['password' => __('validation.confirmed', ['attribute' => 'password'])]);
+test('email verification and password confirmation pages are not available', function (string $path): void {
+    $user = User::factory()->create();
 
-    $this->assertGuest();
-    $this->assertDatabaseCount('users', 0);
-});
+    $this->actingAs($user)->get($path)->assertNotFound();
+})->with(['/verify-email', '/confirm-password']);
 
 test('dashboard escapes the authenticated user name', function (): void {
     $user = User::factory()->create(['name' => '<script>alert(1)</script>']);

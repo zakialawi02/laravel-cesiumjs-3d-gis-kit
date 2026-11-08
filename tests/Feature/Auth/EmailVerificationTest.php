@@ -1,49 +1,25 @@
 <?php
 
 use App\Models\User;
-use Illuminate\Auth\Events\Verified;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\URL;
+use Illuminate\Support\Facades\Route;
 
 uses(LazilyRefreshDatabase::class);
 
-test('email verification screen can be rendered', function () {
+test('email verification routes are not registered', function (string $routeName): void {
+    expect(Route::has($routeName))->toBeFalse();
+})->with(['verification.notice', 'verification.verify', 'verification.send']);
+
+test('the email verification screen is not available', function (): void {
     $user = User::factory()->unverified()->create();
 
-    $response = $this->actingAs($user)->get('/verify-email');
-
-    $response->assertStatus(200);
+    $this->actingAs($user)->get('/verify-email')->assertNotFound();
 });
 
-test('email can be verified', function () {
+test('unverified users can use the application without verifying their email', function (string $path): void {
     $user = User::factory()->unverified()->create();
 
-    Event::fake();
-
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1($user->email)]
-    );
-
-    $response = $this->actingAs($user)->get($verificationUrl);
-
-    Event::assertDispatched(Verified::class);
-    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
-    $response->assertRedirect(route('dashboard', absolute: false).'?verified=1');
-});
-
-test('email is not verified with invalid hash', function () {
-    $user = User::factory()->unverified()->create();
-
-    $verificationUrl = URL::temporarySignedRoute(
-        'verification.verify',
-        now()->addMinutes(60),
-        ['id' => $user->id, 'hash' => sha1('wrong-email')]
-    );
-
-    $this->actingAs($user)->get($verificationUrl);
+    $this->actingAs($user)->get($path)->assertOk();
 
     expect($user->fresh()->hasVerifiedEmail())->toBeFalse();
-});
+})->with(['/dashboard', '/profile']);

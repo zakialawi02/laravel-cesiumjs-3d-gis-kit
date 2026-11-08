@@ -8,6 +8,10 @@ use Illuminate\Support\Facades\Notification;
 
 uses(LazilyRefreshDatabase::class);
 
+beforeEach(function (): void {
+    config(['mail.smtp_on' => true]);
+});
+
 test('reset password link screen can be rendered', function () {
     $response = $this->get('/forgot-password');
 
@@ -22,6 +26,20 @@ test('reset password link can be requested', function () {
     $this->post('/forgot-password', ['email' => $user->email]);
 
     Notification::assertSentTo($user, ResetPassword::class);
+});
+
+test('reset password link is refused while the email system is disabled', function () {
+    config(['mail.smtp_on' => false]);
+    Notification::fake();
+
+    $user = User::factory()->create();
+
+    $this->from('/forgot-password')
+        ->post('/forgot-password', ['email' => $user->email])
+        ->assertRedirect('/forgot-password')
+        ->assertSessionHasErrors(['email' => __('Email system is unavailable. Please contact admin manually.')]);
+
+    Notification::assertNothingSent();
 });
 
 test('reset password screen can be rendered', function () {
