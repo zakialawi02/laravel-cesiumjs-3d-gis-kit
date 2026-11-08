@@ -1,7 +1,14 @@
 <?php
 
-test('the application returns a successful response', function () {
-    $response = $this->get('/');
+use App\Models\User;
+use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 
-    $response->assertStatus(200);
+uses(LazilyRefreshDatabase::class);
+
+test('guests are sent to the login page from the map', function () {
+    $this->get('/')->assertRedirect(route('login'));
+});
+
+test('the map returns a successful response for signed in users', function () {
+    $this->actingAs(User::factory()->create())->get('/')->assertOk();
 });

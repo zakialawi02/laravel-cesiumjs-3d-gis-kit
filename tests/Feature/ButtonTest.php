@@ -2,79 +2,54 @@
 
 use Illuminate\Support\Facades\Blade;
 
-test('buttons use the appropriate form action by default', function (string $component, string $type): void {
-    $html = Blade::render("<x-{$component}>Save</x-{$component}>");
+/**
+ * Render a Blade snippet and return the first element with the given tag.
+ */
+function renderButtonElement(string $template, string $tag, array $data = []): ?DOMElement
+{
     $document = new DOMDocument;
-    $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-    $button = $document->getElementsByTagName('button')->item(0);
+    $document->loadHTML(Blade::render($template, $data), LIBXML_NOERROR | LIBXML_NOWARNING);
 
-    expect($button->getAttribute('type'))->toBe($type);
+    return $document->getElementsByTagName($tag)->item(0);
+}
+
+test('buttons render a plain button by default', function (string $component): void {
+    $button = renderButtonElement("<x-{$component}>Save</x-{$component}>", 'button');
+
+    expect($button->getAttribute('type'))->toBe('button');
     expect($button->hasAttribute('disabled'))->toBeFalse();
-    expect($button->hasAttribute('aria-busy'))->toBeFalse();
     expect(trim($button->textContent))->toBe('Save');
-})->with([
-    'primary' => ['button-primary', 'submit'],
-    'secondary' => ['button-secondary', 'button'],
-    'danger' => ['button-danger', 'submit'],
+})->with(['button-primary', 'button-light', 'button-success']);
+
+test('buttons forward a custom form action and attributes', function (string $component): void {
+    $button = renderButtonElement("<x-{$component} type=\"submit\" size=\"small\" variant=\"outline\" data-action=\"save\">Save</x-{$component}>", 'button');
+
+    expect($button->getAttribute('type'))->toBe('submit');
+    expect($button->getAttribute('data-action'))->toBe('save');
+    expect($button->getAttribute('class'))->toContain('text-sm');
+})->with(['button-primary', 'button-light', 'button-success']);
+
+test('buttons can be disabled through a bound attribute', function (string $component, bool $disabled): void {
+    $button = renderButtonElement("<x-{$component} type=\"submit\" :disabled=\"\$disabled\">Send</x-{$component}>", 'button', ['disabled' => $disabled]);
+
+    expect($button->hasAttribute('disabled'))->toBe($disabled);
+})->with(['button-primary', 'button-light', 'button-success'])->with([
+    'disabled' => true,
+    'enabled' => false,
 ]);
 
-test('loading buttons prevent another action and announce their busy state', function (string $component): void {
-    $html = Blade::render("<x-{$component} :loading=\"true\">Processing</x-{$component}>");
-    $document = new DOMDocument;
-    $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-    $button = $document->getElementsByTagName('button')->item(0);
-
-    expect($button->hasAttribute('disabled'))->toBeTrue();
-    expect($button->getAttribute('aria-busy'))->toBe('true');
-    expect(trim($button->textContent))->toBe('Processing');
-})->with(['button-primary', 'button-secondary', 'button-danger']);
-
-test('buttons can be disabled without showing a loading state', function (string $component): void {
-    $html = Blade::render("<x-{$component} :disabled=\"true\">Save</x-{$component}>");
-    $document = new DOMDocument;
-    $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-    $button = $document->getElementsByTagName('button')->item(0);
-
-    expect($button->hasAttribute('disabled'))->toBeTrue();
-    expect($button->hasAttribute('aria-busy'))->toBeFalse();
-})->with(['button-primary', 'button-secondary', 'button-danger']);
-
-test('secondary buttons forward a custom form action and attributes', function (): void {
-    $html = Blade::render('<x-button-secondary type="reset" size="small" variant="solid" data-action="clear">Reset</x-button-secondary>');
-    $document = new DOMDocument;
-    $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-    $button = $document->getElementsByTagName('button')->item(0);
-
-    expect($button->getAttribute('type'))->toBe('reset');
-    expect($button->getAttribute('data-action'))->toBe('clear');
-});
-
 test('buttons render navigation links when given a destination', function (string $component): void {
-    $html = Blade::render("<x-{$component} href=\"/profile\" variant=\"outline\">Profile</x-{$component}>");
     $document = new DOMDocument;
-    $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
+    $document->loadHTML(Blade::render("<x-{$component} href=\"/profile\" variant=\"outline\">Profile</x-{$component}>"), LIBXML_NOERROR | LIBXML_NOWARNING);
     $link = $document->getElementsByTagName('a')->item(0);
 
     expect($document->getElementsByTagName('button')->length)->toBe(0);
     expect($link->getAttribute('href'))->toBe('/profile');
     expect($link->hasAttribute('type'))->toBeFalse();
     expect(trim($link->textContent))->toBe('Profile');
-})->with(['button-primary', 'button-secondary', 'button-danger']);
+})->with(['button-primary', 'button-light', 'button-success']);
 
-test('disabled and loading button links cannot navigate', function (string $component, bool $loading, bool $disabled): void {
-    $html = Blade::render(
-        "<x-{$component} href=\"/profile\" :loading=\"\$loading\" :disabled=\"\$disabled\">Profile</x-{$component}>",
-        ['loading' => $loading, 'disabled' => $disabled],
-    );
-    $document = new DOMDocument;
-    $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
-    $link = $document->getElementsByTagName('a')->item(0);
-
-    expect($link->hasAttribute('href'))->toBeFalse();
-    expect($link->getAttribute('aria-disabled'))->toBe('true');
-    expect($link->getAttribute('tabindex'))->toBe('-1');
-    expect($link->getAttribute('aria-busy'))->toBe($loading ? 'true' : '');
-})->with(['button-primary', 'button-secondary', 'button-danger'])->with([
-    'loading' => [true, false],
-    'disabled' => [false, true],
-]);
+test('the starter kit secondary and danger button variants are not available', function (string $component): void {
+    expect(fn () => Blade::render("<x-{$component}>Save</x-{$component}>"))
+        ->toThrow(InvalidArgumentException::class, "Unable to locate a class or view for component [{$component}].");
+})->with(['button-secondary', 'button-danger']);
