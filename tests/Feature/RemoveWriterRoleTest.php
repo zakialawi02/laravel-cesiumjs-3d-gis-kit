@@ -1,45 +1,42 @@
 <?php
 
-use App\Models\Role;
+use App\Enums\UserRole;
 use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 uses(LazilyRefreshDatabase::class);
 
-test('removing writer migrates users without another role to the regular user role', function (): void {
-    $writer = Role::factory()->create(['name' => 'writer']);
-    $user = User::factory()->hasAttached($writer)->create([
-        'profile_photo_path' => '/assets/img/profile/writer.png',
-    ]);
-    $migration = require database_path('migrations/2026_10_16_055341_remove_writer_role.php');
-
-    $migration->up();
-
-    $this->assertModelExists($user);
-    $this->assertDatabaseMissing('roles', ['name' => 'writer']);
-    $this->assertDatabaseMissing('role_user', ['role_id' => $writer->id]);
-    expect($user->fresh()->roles()->pluck('name')->all())->toBe(['user']);
-    expect($user->fresh()->profile_photo_path)->toBe('/assets/img/profile/user.png');
+test('writer is not a supported role', function (): void {
+    expect(UserRole::tryFrom('writer'))->toBeNull();
+    expect(UserRole::values())->not->toContain('writer');
+    expect(User::factory()->make()->hasRole('writer'))->toBeFalse();
+    expect(Schema::hasTable('roles'))->toBeFalse();
+    expect(file_exists(database_path('migrations/2026_10_16_055341_remove_writer_role.php')))->toBeFalse();
 });
 
-test('removing writer preserves the other roles assigned to the user', function (): void {
-    $writer = Role::factory()->create(['name' => 'writer']);
-    $admin = Role::factory()->create(['name' => 'admin']);
-    $user = User::factory()->hasAttached([$writer, $admin])->create();
-    $migration = require database_path('migrations/2026_10_16_055341_remove_writer_role.php');
+test('admins cannot create a user with the writer role', function (): void {
+    $admin = User::factory()->admin()->create();
+    $password = Str::password(16);
 
-    $migration->up();
+    $this->actingAs($admin)->post(route('dashboard.users.store'), [
+        'name' => 'Writer Person',
+        'username' => 'writer',
+        'email' => 'writer@example.com',
+        'role' => 'writer',
+        'password' => $password,
+        'password_confirmation' => $password,
+    ])->assertSessionHasErrors('role');
 
-    expect($user->fresh()->roles()->pluck('name')->all())->toBe(['admin']);
-    $this->assertDatabaseCount('role_user', 1);
-    $this->assertDatabaseMissing('roles', ['name' => 'writer']);
+    $this->assertDatabaseMissing('users', ['username' => 'writer']);
 });
 
-test('seeding after role removal does not recreate writer', function (): void {
+test('seeding does not create a writer account', function (): void {
     $this->seed(DatabaseSeeder::class);
 
-    $this->assertDatabaseMissing('roles', ['name' => 'writer']);
     $this->assertDatabaseMissing('users', ['username' => 'writer']);
-    expect(User::getRoleOptions())->toBe(['admin', 'superadmin', 'user']);
+    $this->assertDatabaseMissing('users', ['role' => 'writer']);
+    expect(UserRole::values())->toBe(['admin', 'engineering']);
 });

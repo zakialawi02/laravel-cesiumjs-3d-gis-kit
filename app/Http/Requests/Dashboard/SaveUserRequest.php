@@ -22,13 +22,15 @@ class SaveUserRequest extends FormRequest
 
     /**
      * Normalise identifiers before validation so uniqueness checks match login lookups.
+     * Non-string input is left untouched so the `string` rule rejects it instead of a cast failing.
      */
     protected function prepareForValidation(): void
     {
-        $this->merge([
-            'username' => strtolower(trim((string) $this->input('username'))),
-            'email' => strtolower(trim((string) $this->input('email'))),
-        ]);
+        foreach (['username', 'email'] as $field) {
+            if (is_string($this->input($field))) {
+                $this->merge([$field => strtolower(trim($this->input($field)))]);
+            }
+        }
     }
 
     /**

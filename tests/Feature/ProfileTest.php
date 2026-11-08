@@ -15,7 +15,7 @@ test('profile page is displayed', function () {
     $response->assertOk();
 });
 
-test('profile information can be updated', function () {
+test('profile information can be updated without resetting email verification', function () {
     $user = User::factory()->create();
 
     $response = $this
@@ -33,8 +33,9 @@ test('profile information can be updated', function () {
     $user->refresh();
 
     $this->assertSame('Test User', $user->name);
+    $this->assertSame('test_user', $user->username);
     $this->assertSame('test@example.com', $user->email);
-    $this->assertNull($user->email_verified_at);
+    $this->assertNotNull($user->email_verified_at);
 });
 
 test('email verification status is unchanged when the email address is unchanged', function () {
@@ -55,48 +56,54 @@ test('email verification status is unchanged when the email address is unchanged
     $this->assertNotNull($user->refresh()->email_verified_at);
 });
 
-test('user can delete their account', function () {
+test('accounts cannot be deleted from the profile page', function () {
     $user = User::factory()->create();
 
-    $response = $this
+    $this
         ->actingAs($user)
         ->delete('/profile', [
             'password' => 'password',
-        ]);
+        ])
+        ->assertMethodNotAllowed();
 
-    $response
-        ->assertSessionHasNoErrors()
-        ->assertRedirect('/');
-
-    $this->assertGuest();
-    $this->assertSoftDeleted($user);
+    $this->assertAuthenticatedAs($user);
+    $this->assertNotSoftDeleted($user);
 });
 
-test('correct password must be provided to delete account', function () {
-    $user = User::factory()->create();
+test('admins cannot delete their own account from the profile page either', function () {
+    $admin = User::factory()->admin()->create();
 
-    $response = $this
-        ->actingAs($user)
+    $this
+        ->actingAs($admin)
         ->from('/profile')
         ->delete('/profile', [
             'password' => 'wrong-password',
-        ]);
+        ])
+        ->assertMethodNotAllowed();
 
-    $response
-        ->assertSessionHasErrorsIn('userDeletion', 'password')
-        ->assertRedirect('/profile');
-
-    $this->assertNotNull($user->fresh());
+    $this->assertNotSoftDeleted($admin);
 });
 
-test('profile updates reject usernames containing a hyphen', function (string $username): void {
+test('profile updates reject usernames with unsupported characters', function (string $username): void {
     $user = User::factory()->create();
 
     $this->actingAs($user)->patch('/profile', [
         'name' => $user->name,
         'username' => $username,
         'email' => $user->email,
-    ])->assertSessionHasErrors(['username' => __('validation.regex', ['attribute' => 'username'])]);
+    ])->assertSessionHasErrors(['username' => 'Username may only contain lowercase letters, numbers, dots, dashes and underscores.']);
 
     $this->assertDatabaseHas('users', ['id' => $user->id, 'username' => $user->username]);
-})->with(['user-name', '-username', 'username-']);
+})->with(['user name', 'user@name', 'penggunaé']);
+
+test('profile updates accept usernames with dots, dashes and underscores', function (string $username): void {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)->patch('/profile', [
+        'name' => $user->name,
+        'username' => $username,
+        'email' => $user->email,
+    ])->assertSessionHasNoErrors()->assertRedirect('/profile');
+
+    $this->assertDatabaseHas('users', ['id' => $user->id, 'username' => $username]);
+})->with(['user-name', '-username', 'user.name_2']);

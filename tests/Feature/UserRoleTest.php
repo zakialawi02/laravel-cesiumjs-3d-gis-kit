@@ -1,94 +1,80 @@
 <?php
 
-use App\Models\Role;
+use App\Enums\UserRole;
 use App\Models\User;
-use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 uses(LazilyRefreshDatabase::class);
 
-test('a user can hold several roles and roles can belong to several users', function (): void {
-    $admin = Role::factory()->create(['name' => 'admin']);
-    $userRole = Role::factory()->create(['name' => 'user']);
+test('each user holds exactly one role stored on the users table', function (): void {
+    $user = User::query()->create([
+        'name' => 'Role Default',
+        'username' => 'role_default',
+        'email' => 'role-default@example.com',
+        'password' => 'password',
+    ]);
+
+    expect($user->fresh()->role)->toBe(UserRole::Engineering);
+    expect(Schema::hasColumn('users', 'role'))->toBeTrue();
+    expect(Schema::hasTable('role_user'))->toBeFalse();
+    expect(class_exists('App\Models\Role'))->toBeFalse();
+});
+
+test('assigning a new role replaces the previous one', function (): void {
     $user = User::factory()->create();
-    $anotherUser = User::factory()->create();
 
-    $user->assignRole($admin)->assignRole('user');
-    $anotherUser->assignRole('user');
+    $user->update(['role' => UserRole::Admin]);
 
-    expect($user->roles()->pluck('name')->all())->toEqualCanonicalizing(['admin', 'user']);
-    expect($userRole->users()->pluck('users.id')->all())->toEqualCanonicalizing([$user->id, $anotherUser->id]);
-    $this->assertDatabaseCount('role_user', 3);
+    expect($user->fresh()->role)->toBe(UserRole::Admin);
+    expect($user->fresh()->hasRole('admin'))->toBeTrue();
+    expect($user->fresh()->hasRole('engineering'))->toBeFalse();
+    $this->assertDatabaseHas('users', ['id' => $user->id, 'role' => 'admin']);
 });
 
-test('assigning a role twice does not duplicate membership or discard other roles', function (): void {
-    $role = Role::factory()->create(['name' => 'admin']);
-    $user = User::factory()->hasAttached(Role::factory()->create(['name' => 'user']))->create();
-    $user->load('roles');
+test('role checks return only exact assigned roles', function (bool $persisted): void {
+    $user = $persisted ? User::factory()->create()->fresh() : User::factory()->make();
 
-    $user->assignRole($role)->assignRole('admin');
-
-    expect($user->hasRole('admin'))->toBeTrue();
-    expect($user->hasRole('user'))->toBeTrue();
-    $this->assertDatabaseCount('role_user', 2);
-});
-
-test('removing a role preserves the remaining memberships', function (): void {
-    $admin = Role::factory()->create(['name' => 'admin']);
-    $userRole = Role::factory()->create(['name' => 'user']);
-    $user = User::factory()->hasAttached([$admin, $userRole])->create();
-    $user->load('roles');
-
-    $user->removeRole('admin');
-
+    expect($user->hasRole(['admin', 'engineering']))->toBeTrue();
+    expect($user->hasRole(UserRole::Engineering))->toBeTrue();
+    expect($user->hasRole([UserRole::Admin, 'engineering']))->toBeTrue();
     expect($user->hasRole('admin'))->toBeFalse();
-    expect($user->hasRole('user'))->toBeTrue();
-    $this->assertDatabaseMissing('role_user', ['user_id' => $user->id, 'role_id' => $admin->id]);
-    $this->assertDatabaseHas('role_user', ['user_id' => $user->id, 'role_id' => $userRole->id]);
-});
+    expect($user->hasRole('engineer'))->toBeFalse();
+    expect($user->hasRole('superadmin'))->toBeFalse();
+    expect($user->hasRole([]))->toBeFalse();
+})->with(['persisted' => true, 'in memory' => false]);
 
-test('role checks return only exact assigned roles', function (bool $eagerLoad): void {
-    $user = User::factory()->hasAttached(Role::factory()->create(['name' => 'user']))->create();
+test('only admins may upload data, manage data and manage users', function (string $state, bool $isAdmin): void {
+    $user = $state === 'admin' ? User::factory()->admin()->make() : User::factory()->make();
 
-    if ($eagerLoad) {
-        $user->load('roles');
-    }
+    expect($user->isAdmin())->toBe($isAdmin);
+    expect($user->isEngineering())->toBe(! $isAdmin);
+    expect($user->canUploadData())->toBe($isAdmin);
+    expect($user->canManageData())->toBe($isAdmin);
+    expect($user->canManageUsers())->toBe($isAdmin);
+})->with([
+    'admin' => ['admin', true],
+    'engineering' => ['engineering', false],
+]);
 
-    expect($user->hasAnyRole('admin', 'user'))->toBeTrue();
-    expect($user->hasAnyRole('admin', 'superadmin'))->toBeFalse();
-    expect($user->hasRole('use'))->toBeFalse();
-    expect($user->hasAnyRole())->toBeFalse();
-})->with(['loaded' => true, 'unloaded' => false]);
-
-test('permanently deleting a user removes memberships and sessions while retaining roles', function (): void {
-    $role = Role::factory()->create();
-    $user = User::factory()->hasAttached($role)->create();
-    config(['session.driver' => 'database']);
-    $this->post('/login', ['login' => $user->email, 'password' => 'password'])->assertRedirect('/dashboard');
-    $this->assertDatabaseHas('sessions', ['user_id' => $user->id]);
+test('permanently deleting a user removes their sessions', function (): void {
+    $user = User::factory()->create();
+    DB::table('sessions')->insert([
+        'id' => 'session-of-deleted-user',
+        'user_id' => $user->id,
+        'payload' => '',
+        'last_activity' => now()->getTimestamp(),
+    ]);
 
     $user->forceDelete();
 
-    $this->assertDatabaseMissing('role_user', ['user_id' => $user->id]);
     $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
-    $this->assertModelExists($role);
+    $this->assertModelMissing($user);
 });
 
-test('deleting a role removes only its memberships', function (): void {
-    $admin = Role::factory()->create(['name' => 'admin']);
-    $userRole = Role::factory()->create(['name' => 'user']);
-    $user = User::factory()->hasAttached([$admin, $userRole])->create();
-
-    $admin->delete();
-
-    $this->assertDatabaseMissing('role_user', ['role_id' => $admin->id]);
-    $this->assertDatabaseHas('role_user', ['role_id' => $userRole->id, 'user_id' => $user->id]);
-    $this->assertModelExists($user);
-});
-
-test('available role options include every seeded and custom role', function (): void {
-    $this->seed(RoleSeeder::class);
-    Role::factory()->create(['name' => 'editor']);
-
-    expect(User::getRoleOptions())->toBe(['admin', 'editor', 'superadmin', 'user']);
+test('available role options are the enum cases with readable labels', function (): void {
+    expect(UserRole::values())->toBe(['admin', 'engineering']);
+    expect(UserRole::Admin->label())->toBe('Admin');
+    expect(UserRole::Engineering->label())->toBe('Engineering');
 });
