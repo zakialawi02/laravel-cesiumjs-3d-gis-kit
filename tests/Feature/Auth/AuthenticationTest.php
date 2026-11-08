@@ -58,12 +58,12 @@ test('login validates the identifier and password before authentication', functi
 
     $this->assertGuest();
 })->with([
-    'missing identifier' => [['password' => 'password'], 'id_user', 'validation.required', []],
-    'empty identifier' => [['id_user' => '   ', 'password' => 'password'], 'id_user', 'validation.required', []],
-    'non string identifier' => [['id_user' => ['admin'], 'password' => 'password'], 'id_user', 'validation.string', []],
-    'long identifier' => [['id_user' => str_repeat('a', 256), 'password' => 'password'], 'id_user', 'validation.max.string', ['max' => 255]],
-    'missing password' => [['id_user' => 'admin'], 'password', 'validation.required', []],
-    'non string password' => [['id_user' => 'admin', 'password' => ['password']], 'password', 'validation.string', []],
+    'missing identifier' => [fn (): array => ['password' => fake()->password()], 'id_user', 'validation.required', []],
+    'empty identifier' => [fn (): array => ['id_user' => '   ', 'password' => fake()->password()], 'id_user', 'validation.required', []],
+    'non string identifier' => [fn (): array => ['id_user' => [fake()->userName()], 'password' => fake()->password()], 'id_user', 'validation.string', []],
+    'long identifier' => [fn (): array => ['id_user' => str_repeat('a', 256), 'password' => fake()->password()], 'id_user', 'validation.max.string', ['max' => 255]],
+    'missing password' => [fn (): array => ['id_user' => fake()->userName()], 'password', 'validation.required', []],
+    'non string password' => [fn (): array => ['id_user' => fake()->userName(), 'password' => [fake()->password()]], 'password', 'validation.string', []],
 ]);
 
 test('users can logout', function () {
