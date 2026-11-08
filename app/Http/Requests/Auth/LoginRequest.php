@@ -19,7 +19,11 @@ class LoginRequest extends FormRequest
      */
     protected function prepareForValidation(): void
     {
-        $id_user = Str::lower(trim((string) $this->string('id_user')));
+        if (! is_string($this->input('id_user'))) {
+            return;
+        }
+
+        $id_user = Str::lower(trim($this->input('id_user')));
 
         if (filter_var($id_user, FILTER_VALIDATE_EMAIL)) {
             $this->id_type = 'email';
