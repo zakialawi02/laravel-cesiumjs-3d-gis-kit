@@ -2,34 +2,24 @@
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Route;
 
 uses(LazilyRefreshDatabase::class);
 
-test('confirm password screen can be rendered', function () {
-    $user = User::factory()->create();
-
-    $response = $this->actingAs($user)->get('/confirm-password');
-
-    $response->assertStatus(200);
+test('password confirmation routes are not registered', function (): void {
+    expect(Route::has('password.confirm'))->toBeFalse();
 });
 
-test('password can be confirmed', function () {
+test('the confirm password screen is not available', function () {
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->post('/confirm-password', [
-        'password' => 'password',
-    ]);
-
-    $response->assertRedirect();
-    $response->assertSessionHasNoErrors();
+    $this->actingAs($user)->get('/confirm-password')->assertNotFound();
 });
 
-test('password is not confirmed with invalid password', function () {
+test('posting to the confirm password endpoint is not available', function (string $password) {
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->post('/confirm-password', [
-        'password' => 'wrong-password',
-    ]);
-
-    $response->assertSessionHasErrors();
-});
+    $this->actingAs($user)->post('/confirm-password', ['password' => $password])
+        ->assertNotFound()
+        ->assertSessionMissing('auth.password_confirmed_at');
+})->with(['password', 'wrong-password']);
