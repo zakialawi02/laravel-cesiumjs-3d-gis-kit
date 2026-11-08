@@ -50,20 +50,26 @@ test('unknown email addresses and usernames receive the same authentication erro
     $this->assertGuest();
 })->with(['missing@example.com', 'missing-user']);
 
-test('login validates the identifier and password before authentication', function (array $payload, string $field, string $rule, array $parameters): void {
-    $attribute = str_replace('_', ' ', $field);
+test('login validates the identifier and password before authentication', function (string $field, mixed $value, string $rule, array $parameters): void {
+    $credentials = ['id_user' => fake()->userName(), 'password' => fake()->password()];
 
-    $this->post('/login', $payload)
-        ->assertSessionHasErrors([$field => __($rule, ['attribute' => $attribute, ...$parameters])]);
+    if ($value === null) {
+        unset($credentials[$field]);
+    } else {
+        $credentials[$field] = $value;
+    }
+
+    $this->post('/login', $credentials)
+        ->assertSessionHasErrors([$field => __($rule, ['attribute' => str_replace('_', ' ', $field), ...$parameters])]);
 
     $this->assertGuest();
 })->with([
-    'missing identifier' => [fn (): array => ['password' => fake()->password()], 'id_user', 'validation.required', []],
-    'empty identifier' => [fn (): array => ['id_user' => '   ', 'password' => fake()->password()], 'id_user', 'validation.required', []],
-    'non string identifier' => [fn (): array => ['id_user' => [fake()->userName()], 'password' => fake()->password()], 'id_user', 'validation.string', []],
-    'long identifier' => [fn (): array => ['id_user' => str_repeat('a', 256), 'password' => fake()->password()], 'id_user', 'validation.max.string', ['max' => 255]],
-    'missing password' => [fn (): array => ['id_user' => fake()->userName()], 'password', 'validation.required', []],
-    'non string password' => [fn (): array => ['id_user' => fake()->userName(), 'password' => [fake()->password()]], 'password', 'validation.string', []],
+    'missing identifier' => ['id_user', null, 'validation.required', []],
+    'empty identifier' => ['id_user', '   ', 'validation.required', []],
+    'non string identifier' => ['id_user', ['not-a-string'], 'validation.string', []],
+    'long identifier' => ['id_user', str_repeat('a', 256), 'validation.max.string', ['max' => 255]],
+    'missing password' => ['password', null, 'validation.required', []],
+    'non string password' => ['password', ['not-a-string'], 'validation.string', []],
 ]);
 
 test('users can logout', function () {
