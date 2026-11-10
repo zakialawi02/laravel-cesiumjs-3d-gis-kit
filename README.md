@@ -15,6 +15,7 @@ It is the open-source core extracted from a larger production WebGIS: the upload
 **3D map**
 - Layer panel grouped by category, terrain + orthophoto overlay, vector rendering with labels.
 - Navigation: compass/north reset, zoom, pivot camera, geolocation, coordinate picker, live WGS84 cursor coordinates.
+- Terrain depth test switch in the account menu: hides vector features behind hills or below the surface (remembered per browser).
 - Measure toolbar: planar and surface distance, planar and surface area, circle radius/area.
 - Vol/Profile analysis: cut & fill volume (flat, boundary or comparison terrain) and elevation profiles with an optional comparison terrain.
 - Help popover with mouse, touch and keyboard hints.

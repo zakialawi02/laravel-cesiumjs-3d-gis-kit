@@ -45,8 +45,6 @@
             <p class="map-layer-meta">
                 <span class="map-layer-meta-key">Uploaded</span>
                 <span>{!! $createdAt !!}</span>
-                <span aria-hidden="true">&middot;</span>
-                <span class="map-layer-id" title="ID: {!! $id !!}">{!! $id !!}</span>
             </p>
             {!! $badges !!}
         </div>
@@ -65,6 +63,12 @@
             </button>
         </div>
     </div>
+
+    {{-- Full-width row under the icon so the ID is not squeezed by the action buttons. --}}
+    <p class="map-layer-meta map-layer-id-row">
+        <span class="map-layer-meta-key">ID</span>
+        <span class="map-layer-id" title="ID: {!! $id !!}">{!! $id !!}</span>
+    </p>
 
     <div class="vector-settings-panel map-layer-settings hidden ${ {!! $layerTypeVar !!} === 'vector' ? '' : '!hidden' }">
         <span class="map-label">Label field</span>

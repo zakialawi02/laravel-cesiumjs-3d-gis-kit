@@ -58,6 +58,15 @@
                 <span class="flex-1">{{ __('Dark mode') }}</span>
                 <span class="map-switch-mini" aria-hidden="true"></span>
             </button>
+            {{-- Wired in cesium-map.js (toggleDepthTestAgainstTerrain). --}}
+            <button type="button" id="depthTestToggle" class="map-menu-item" aria-pressed="false">
+                <i class="ri-landscape-line" aria-hidden="true"></i>
+                <span class="flex min-w-0 flex-1 flex-col py-1.5">
+                    <span>{{ __('Terrain depth test') }}</span>
+                    <span class="text-[0.6875rem] font-normal text-map-subtle">{{ __('Hide vectors behind terrain') }}</span>
+                </span>
+                <span class="map-switch-mini" aria-hidden="true"></span>
+            </button>
         </nav>
 
         <div class="border-t border-map-line p-1.5">

@@ -15,6 +15,7 @@
         ['icon' => 'ri-bar-chart-box-line', 'title' => __('Vol / Profile'), 'label' => __('Cut & fill volume and elevation profiles. Needs an active terrain layer.')],
         ['icon' => 'ri-sip-line', 'title' => __('Pick coordinates'), 'label' => __('Shows latitude, longitude and elevation of a clicked point.')],
         ['icon' => 'ri-webcam-line', 'title' => __('Pivot camera'), 'label' => __('Orbits the camera around a point you pick.')],
+        ['icon' => 'ri-landscape-line', 'title' => __('Depth test against terrain'), 'label' => __('Hides vector features behind hills or below the terrain surface. Switch it in the account menu.')],
     ];
     $shortcuts = [
         ['keys' => ['L'], 'label' => __('Layers panel')],
