@@ -7,31 +7,31 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #f4f7f9;
-  --foreground: #1a1d23;
-  --base-content: #003e64;
-  --base-content-muted: #475569;
-  --primary: #1a4fa0;
+  --background: #f2f6f4;
+  --foreground: #0f1a15;
+  --base-content: #064e3b;
+  --base-content-muted: #4b5a53;
+  --primary: #047857;
   --primary-foreground: #ffffff;
   --secondary: #fbc02d;
-  --secondary-foreground: #1a1d23;
-  --muted: #e2e8f0;
-  --muted-foreground: #475569;
-  --accent: #003e64;
+  --secondary-foreground: #0f1a15;
+  --muted: #e2ebe6;
+  --muted-foreground: #4b5a53;
+  --accent: #064e3b;
   --accent-foreground: #ffffff;
   --neutral: #ffffff;
-  --neutral-foreground: #1a1d23;
-  --info: #1a4fa0;
+  --neutral-foreground: #0f1a15;
+  --info: #047857;
   --success: #10b981;
   --warning: #fbc02d;
   --error: #ef4444;
-  --border: #d1d5db;
-  --input: #ebebeb;
-  --ring: #1a4fa0;
-  --chart-1: #1a4fa0;
+  --border: #cfd9d4;
+  --input: #e8eeeb;
+  --ring: #047857;
+  --chart-1: #047857;
   --chart-2: #fbc02d;
-  --chart-3: #003e64;
-  --chart-4: #60a5fa;
+  --chart-3: #064e3b;
+  --chart-4: #34d399;
   --chart-5: #fbbf24;
 
   --font-sans: "Exo 2 Variable", ui-sans-serif, sans-serif, system-ui;
@@ -50,31 +50,31 @@
   --spacing: 0.25rem;
 }
 .dark {
-  --background: #0a0c10;
-  --foreground: #f4f7f9;
-  --base-content: #f4f7f9;
-  --base-content-muted: #94a3b8;
-  --primary: #1a4fa0;
+  --background: #0a100e;
+  --foreground: #ecf3ef;
+  --base-content: #ecf3ef;
+  --base-content-muted: #a3b3ab;
+  --primary: #059669;
   --primary-foreground: #ffffff;
   --secondary: #fbc02d;
-  --secondary-foreground: #1a1d23;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #60a5fa;
-  --accent-foreground: #ffffff;
-  --neutral: #1a1d23;
-  --neutral-foreground: #f4f7f9;
-  --info: #1a4fa0;
+  --secondary-foreground: #0f1a15;
+  --muted: #1b2420;
+  --muted-foreground: #a3b3ab;
+  --accent: #34d399;
+  --accent-foreground: #0a100e;
+  --neutral: #141a18;
+  --neutral-foreground: #ecf3ef;
+  --info: #059669;
   --success: #10b981;
   --warning: #fbc02d;
   --error: #ef4444;
-  --border: #334155;
-  --input: #141d2b;
-  --ring: #1a4fa0;
-  --chart-1: #1a4fa0;
+  --border: #2c3833;
+  --input: #111a16;
+  --ring: #10b981;
+  --chart-1: #10b981;
   --chart-2: #fbc02d;
-  --chart-3: #003e64;
-  --chart-4: #60a5fa;
+  --chart-3: #047857;
+  --chart-4: #6ee7b7;
   --chart-5: #fbbf24;
 
   --font-sans: "Exo 2 Variable", ui-sans-serif, sans-serif, system-ui;
@@ -271,20 +271,20 @@
   --map-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --map-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", "Segoe UI Mono", Menlo, Consolas, monospace;
 
-  /* Green theme (light) */
+  /* Map tokens derived from the app theme schema above (light). */
   --map-surface: rgb(255 255 255 / 0.86);
-  --map-surface-strong: #ffffff;
-  --map-surface-sunken: #f0f4f2;
-  --map-line: rgb(12 38 28 / 0.09);
-  --map-line-strong: rgb(12 38 28 / 0.15);
+  --map-surface-strong: var(--neutral);
+  --map-surface-sunken: var(--background);
+  --map-line: rgb(12 38 28 / 0.1);
+  --map-line-strong: rgb(12 38 28 / 0.16);
   --map-hover: rgb(12 38 28 / 0.05);
   --map-press: rgb(12 38 28 / 0.09);
-  --map-ink: #0f1a15;
-  --map-ink-muted: #4b5a53;
+  --map-ink: var(--foreground);
+  --map-ink-muted: var(--base-content-muted);
   --map-ink-subtle: #5f6e67;
-  --map-accent: #047857;
+  --map-accent: var(--primary);
   --map-accent-hover: #065f46;
-  --map-accent-ink: #047857;
+  --map-accent-ink: var(--primary);
   --map-accent-soft: rgb(4 120 87 / 0.1);
   --map-accent-line: rgb(4 120 87 / 0.34);
   --map-terrain: #b45309;
@@ -296,28 +296,28 @@
   --map-shadow: 0 1px 2px rgb(10 36 26 / 0.07), 0 6px 20px -6px rgb(10 36 26 / 0.24);
   --map-shadow-lg: 0 2px 6px rgb(10 36 26 / 0.07), 0 22px 50px -16px rgb(10 36 26 / 0.4);
   --map-highlight: inset 0 1px 0 rgb(255 255 255 / 0.7);
-  --map-tip: #0f1a15;
-  --map-tip-ink: #f4faf7;
-  --map-border: #cfd9d4;
+  --map-tip: var(--foreground);
+  --map-tip-ink: var(--background);
+  --map-border: var(--border);
 }
 
 .dark {
-  /* Green theme (dark) */
+  /* Map tokens derived from the app theme schema above (dark). */
   --map-surface: rgb(20 26 24 / 0.84);
-  --map-surface-strong: #141a18;
-  --map-surface-sunken: #0d1211;
+  --map-surface-strong: var(--neutral);
+  --map-surface-sunken: var(--input);
   --map-line: rgb(220 255 240 / 0.08);
   --map-line-strong: rgb(220 255 240 / 0.14);
   --map-hover: rgb(220 255 240 / 0.06);
   --map-press: rgb(220 255 240 / 0.1);
-  --map-ink: #ecf3ef;
-  --map-ink-muted: #a3b3ab;
+  --map-ink: var(--foreground);
+  --map-ink-muted: var(--muted-foreground);
   --map-ink-subtle: #8c9c94;
-  --map-accent: #0a7a58;
-  --map-accent-hover: #0c8a64;
-  --map-accent-ink: #5fd8a8;
-  --map-accent-soft: rgb(95 216 168 / 0.13);
-  --map-accent-line: rgb(95 216 168 / 0.4);
+  --map-accent: var(--primary);
+  --map-accent-hover: #0aa577;
+  --map-accent-ink: var(--accent);
+  --map-accent-soft: rgb(52 211 153 / 0.13);
+  --map-accent-line: rgb(52 211 153 / 0.4);
   --map-terrain: #f2ab55;
   --map-terrain-soft: rgb(242 171 85 / 0.14);
   --map-danger: #f87171;
@@ -327,9 +327,9 @@
   --map-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 26px -8px rgb(0 0 0 / 0.6);
   --map-shadow-lg: 0 2px 6px rgb(0 0 0 / 0.35), 0 26px 60px -18px rgb(0 0 0 / 0.75);
   --map-highlight: inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --map-tip: #ecf3ef;
-  --map-tip-ink: #0f1a15;
-  --map-border: #2c3833;
+  --map-tip: var(--foreground);
+  --map-tip-ink: var(--neutral);
+  --map-border: var(--border);
 }
 
 @media (min-width: 48rem) {
@@ -371,12 +371,8 @@
     --map-free-left: 0px;
     --map-free-right: calc(var(--map-gap) * 2 + var(--map-rail-w));
     --map-free-center: calc((100% + var(--map-free-left) - var(--map-free-right)) / 2);
-    /* Shared components inside the map (upload modal, buttons) follow the green map theme. */
-    --primary: var(--map-accent);
-    --ring: var(--map-accent);
-    --neutral: var(--map-surface-strong);
+    /* Shared form inputs inside the map (upload modal) use the map's sunken surface. */
     --input: var(--map-surface-sunken);
-    --border: var(--map-border);
     position: relative;
     height: 100dvh;
     width: 100%;
@@ -853,7 +849,7 @@
     background-color: var(--map-accent);
     box-shadow:
       inset 0 1px 0 rgb(255 255 255 / 0.14),
-      0 1px 2px rgb(15 30 60 / 0.25);
+      0 1px 2px rgb(10 36 26 / 0.25);
     color: #fff;
   }
 
@@ -1348,7 +1344,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 0.75rem;
-    background-color: #1a2030;
+    background-color: #16201b;
   }
 
   .map-help-title {
@@ -1425,7 +1421,7 @@
   .map-segment[aria-selected="true"] {
     background-color: var(--map-surface-strong);
     box-shadow:
-      0 1px 2px rgb(15 30 60 / 0.12),
+      0 1px 2px rgb(10 36 26 / 0.12),
       0 0 0 1px var(--map-line);
     color: var(--map-ink);
   }
@@ -1880,7 +1876,7 @@
     border-radius: 0;
     box-shadow:
       var(--map-highlight),
-      0 -8px 24px -14px rgb(15 30 60 / 0.45);
+      0 -8px 24px -14px rgb(10 36 26 / 0.45);
   }
 
   .map-tab {
@@ -2298,13 +2294,13 @@
 .map-app .cesium-performanceDisplay {
   border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: 0.75rem;
-  background: rgb(17 22 30 / 0.8);
+  background: rgb(16 24 21 / 0.8);
   padding: 0.375rem 0.75rem;
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
 }
 
-/* Dark mode: the accent green is too dark for text on dark surfaces, including classes the map scripts set. */
+/* Dark mode: the primary green is too dark for text on dark surfaces, including classes the map scripts set. */
 .dark .map-app .text-primary {
   color: var(--map-accent-ink);
 }

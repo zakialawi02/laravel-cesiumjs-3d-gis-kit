@@ -38,7 +38,7 @@ class SaveLayerCategoryRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'color.regex' => 'The color must be a hex value such as #1a4fa0.',
+            'color.regex' => 'The color must be a hex value such as #047857.',
         ];
     }
 }
