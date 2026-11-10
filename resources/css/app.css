@@ -260,7 +260,7 @@
 :root {
   --map-gap: 0.75rem;
   --map-bar-h: 3.5rem;
-  --map-panel-w: 24rem;
+  --map-panel-w: 26rem;
   --map-card-w: 22.5rem;
   --map-tool: 2.75rem;
   --map-rail-w: calc(var(--map-tool) + 0.5rem + 2px);
@@ -673,11 +673,13 @@
     transition: translate 180ms var(--map-ease);
   }
 
-  .dark .map-switch-mini {
+  .dark [data-theme-toggle] > .map-switch-mini,
+  .map-menu-item[aria-pressed="true"] > .map-switch-mini {
     background-color: var(--map-accent);
   }
 
-  .dark .map-switch-mini::before {
+  .dark [data-theme-toggle] > .map-switch-mini::before,
+  .map-menu-item[aria-pressed="true"] > .map-switch-mini::before {
     translate: 0.875rem 0;
   }
 
@@ -1784,6 +1786,11 @@
 
   .map-layer-meta-key {
     color: var(--map-ink-subtle);
+  }
+
+  .map-layer-id-row {
+    margin-top: 0.5rem;
+    padding-right: 0.25rem;
   }
 
   .map-layer-meta > .map-layer-id {
