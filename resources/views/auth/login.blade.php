@@ -6,7 +6,7 @@
         <!-- Left Side - Background Image -->
         <div class="relative hidden h-full md:block md:w-1/2 lg:w-2/3 xl:w-3/4">
             <img src="{{ asset('assets/img/auth-topography.webp') }}" alt="Topographic contour map" class="h-full w-full object-cover object-center" />
-            <div class="absolute inset-0 bg-gradient-to-br from-[#003e64]/25 via-[#1a4fa0]/15 to-black/30 pointer-events-none">
+            <div class="absolute inset-0 bg-gradient-to-br from-[#064e3b]/25 via-[#047857]/15 to-black/30 pointer-events-none">
             </div>
         </div>
 
@@ -16,7 +16,7 @@
                 <!-- Logo & Branding -->
                 <div class="mb-6 flex flex-col items-center">
                     <a href="/"
-                        class="mb-3 flex h-14 w-14 items-center justify-center rounded-[14px] bg-primary shadow-[0_4px_14px_rgba(26,79,160,0.3)] transition-transform hover:scale-105 active:scale-95">
+                        class="mb-3 flex h-14 w-14 items-center justify-center rounded-[14px] bg-primary shadow-[0_4px_14px_rgba(4,120,87,0.3)] transition-transform hover:scale-105 active:scale-95">
                         <x-application-logo class="max-h-10 max-w-10 w-9 brightness-0 invert" />
                     </a>
                     <h1 class="mb-2 text-center text-sm font-extrabold uppercase tracking-[0.08em] text-accent ">

@@ -138,7 +138,7 @@
             <!-- Live preview -->
             <div class="bg-muted/50 flex items-center gap-3 rounded-xl p-3">
                 <span id="categoryPreviewBadge" class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg"
-                    style="background-color: {{ old('color', '#1a4fa0') }}">
+                    style="background-color: {{ old('color', '#047857') }}">
                     <img id="categoryPreviewImg" src="" alt="" class="hidden h-7 w-7 object-contain">
                     <i id="categoryPreviewIcon" class="ri-stack-line text-white"></i>
                 </span>
@@ -158,8 +158,8 @@
                 <div>
                     <x-input-label for="category_color" value="Color" />
                     <div class="flex items-center gap-2">
-                        <input type="color" id="category_color_picker" value="{{ old('color', '#1a4fa0') }}" class="border-border h-10 w-12 cursor-pointer rounded-lg border bg-transparent p-1" aria-label="Pick color">
-                        <x-text-input id="category_color" name="color" type="text" :value="old('color', '#1a4fa0')" required maxlength="7" pattern="#[0-9a-fA-F]{6}" class="font-mono" :isError="$errors->has('color')" />
+                        <input type="color" id="category_color_picker" value="{{ old('color', '#047857') }}" class="border-border h-10 w-12 cursor-pointer rounded-lg border bg-transparent p-1" aria-label="Pick color">
+                        <x-text-input id="category_color" name="color" type="text" :value="old('color', '#047857')" required maxlength="7" pattern="#[0-9a-fA-F]{6}" class="font-mono" :isError="$errors->has('color')" />
                     </div>
                     <x-input-error :messages="$errors->get('color')" class="mt-1" />
                 </div>
@@ -228,7 +228,7 @@
                     document.getElementById('categoryFormMethod').value = isEdit ? 'PUT' : 'POST';
                     document.getElementById('categoryFormTitle').textContent = isEdit ? 'Edit Category' : 'New Category';
                     form.elements.name.value = data?.name ?? '';
-                    colorInput.value = data?.color ?? '#1a4fa0';
+                    colorInput.value = data?.color ?? '#047857';
                     form.elements.sort_order.value = data?.sort_order ?? 0;
                     form.elements.description.value = data?.description ?? '';
                     previewName.textContent = data?.name || 'Category name';
